@@ -32,22 +32,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          python tempest_weather.py &
-          COLLECTOR_PID=$!
-
-          # Run for 4 minutes (leaving buffer before next cron)
-          sleep 240
-
-          # Gracefully stop the collector
-          kill -SIGTERM $COLLECTOR_PID 2>/dev/null || true
-
-          # Wait a bit for graceful shutdown
-          sleep 5
-
-          # Force kill if still running
-          kill -SIGKILL $COLLECTOR_PID 2>/dev/null || true
-
-          echo "Weather data collection completed"
+          python tempest_weather.py --once
 
       - name: Check for errors
         if: failure()

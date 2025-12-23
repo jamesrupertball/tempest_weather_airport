@@ -24,35 +24,37 @@ TEMPEST_WS_URL = "wss://ws.weatherflow.com/swd/data"
 
 
 class TempestWeatherClient:
-    def __init__(self):
+    def __init__(self, run_once=False):
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.device_id = None
+        self.run_once = run_once
+        self.data_received = False
 
     async def connect_and_listen(self):
         """Connect to Tempest WebSocket API and listen for weather data"""
-        async with websockets.connect(TEMPEST_WS_URL) as websocket:
+        # Connect with authorization token in URL parameters
+        ws_url_with_auth = f"{TEMPEST_WS_URL}?token={TEMPEST_TOKEN}"
+        async with websockets.connect(ws_url_with_auth) as websocket:
             # Subscribe to weather data using your token
             subscribe_message = {
                 "type": "listen_start",
-                "device_id": None,  # Set to None to get all devices, or specify device_id
+                "device_id": 469455,  # Tempest station device ID
                 "id": "tempest-listener"
-            }
-
-            # Alternative: Listen to rapid wind updates
-            listen_rapid_start = {
-                "type": "listen_rapid_start",
-                "device_id": None,
-                "id": "rapid-wind-listener"
             }
 
             await websocket.send(json.dumps(subscribe_message))
             print(f"Connected to Tempest WebSocket API at {datetime.now()}")
-            print("Listening for weather data...")
+            print("Waiting for weather data...")
 
             try:
                 async for message in websocket:
                     data = json.loads(message)
                     await self.process_message(data)
+
+                    # If run_once mode and we've received data, exit
+                    if self.run_once and self.data_received:
+                        print(f"Data collected successfully. Exiting.")
+                        return
             except websockets.exceptions.ConnectionClosed:
                 print("Connection closed. Reconnecting...")
                 await asyncio.sleep(5)
@@ -133,14 +135,15 @@ class TempestWeatherClient:
 
             # Store in Supabase using your existing table name
             result = self.supabase.table('observations_tempest').insert(record).execute()
-            print(f"✓ Stored observation: Temp={obs[7]}°C, Humidity={obs[8]}%, Wind={obs[2]}m/s")
+            print(f"Stored observation: Temp={obs[7]}C, Humidity={obs[8]}%, Wind={obs[2]}m/s")
+            self.data_received = True
 
         except Exception as e:
             print(f"Error storing Tempest observation: {e}")
             print(f"Data: {json.dumps(data, indent=2)}")
 
     async def store_rapid_wind(self, data):
-        """Store rapid wind data - optional, creates many records"""
+        """Store rapid wind data - generates data every 3 seconds"""
         try:
             obs = data.get('ob', [])
             device_id = data.get('device_id')
@@ -150,21 +153,20 @@ class TempestWeatherClient:
 
             # Rapid wind format: [epoch, wind_speed, wind_direction]
             # Note: This generates a LOT of data (every 3 seconds)
-            # Comment this out if you don't have a rapid_wind table or don't want this data
 
-            # Uncomment below if you create a rapid_wind table:
-            # record = {
-            #     'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
-            #     'device_id': device_id,
-            #     'wind_speed': obs[1],
-            #     'wind_direction': obs[2]
-            # }
-            # result = self.supabase.table('rapid_wind').insert(record).execute()
+            record = {
+                'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
+                'device_id': device_id,
+                'wind_speed': obs[1],
+                'wind_direction': obs[2]
+            }
 
-            print(f"✓ Rapid wind: Speed={obs[1]}m/s, Direction={obs[2]}° (not stored)")
+            result = self.supabase.table('rapid_wind').insert(record).execute()
+            print(f"Rapid wind: Speed={obs[1]}m/s, Direction={obs[2]}deg")
 
         except Exception as e:
-            print(f"Error processing rapid wind: {e}")
+            print(f"Error storing rapid wind: {e}")
+            print(f"Data: {json.dumps(data, indent=2)}")
 
     async def store_precipitation_event(self, data):
         """Store precipitation event"""
@@ -176,7 +178,7 @@ class TempestWeatherClient:
             }
 
             result = self.supabase.table('precipitation_events').insert(record).execute()
-            print(f"✓ Precipitation event recorded")
+            print(f"Precipitation event recorded")
 
         except Exception as e:
             print(f"Error storing precipitation event: {e}")
@@ -195,7 +197,7 @@ class TempestWeatherClient:
             }
 
             result = self.supabase.table('lightning_strikes').insert(record).execute()
-            print(f"✓ Lightning strike: Distance={evt[1]}km, Energy={evt[2]}")
+            print(f"Lightning strike: Distance={evt[1]}km, Energy={evt[2]}")
 
         except Exception as e:
             print(f"Error storing lightning strike: {e}")
@@ -223,7 +225,7 @@ class TempestWeatherClient:
             }
 
             result = self.supabase.table('air_observations').insert(record).execute()
-            print(f"✓ Stored AIR observation")
+            print(f"Stored AIR observation")
 
         except Exception as e:
             print(f"Error storing AIR observation: {e}")
@@ -259,7 +261,7 @@ class TempestWeatherClient:
             }
 
             result = self.supabase.table('sky_observations').insert(record).execute()
-            print(f"✓ Stored SKY observation")
+            print(f"Stored SKY observation")
 
         except Exception as e:
             print(f"Error storing SKY observation: {e}")
@@ -267,6 +269,8 @@ class TempestWeatherClient:
 
 async def main():
     """Main entry point"""
+    import sys
+
     # Validate environment variables
     if not TEMPEST_TOKEN:
         print("ERROR: TEMPEST_TOKEN not found in .env file")
@@ -276,23 +280,37 @@ async def main():
         print("ERROR: SUPABASE_URL or SUPABASE_KEY not found in .env file")
         return
 
+    # Check if --once flag is passed
+    run_once = '--once' in sys.argv
+
     print("=" * 60)
     print("Tempest Weather Station WebSocket Client")
     print("=" * 60)
     print(f"Supabase URL: {SUPABASE_URL}")
     print(f"Token: {TEMPEST_TOKEN[:10]}...")
+    print(f"Mode: {'Single collection' if run_once else 'Continuous monitoring'}")
     print("=" * 60)
 
-    client = TempestWeatherClient()
+    client = TempestWeatherClient(run_once=run_once)
 
-    # Run with automatic reconnection
-    while True:
+    if run_once:
+        # Single run mode - collect data and exit
         try:
-            await client.connect_and_listen()
+            await asyncio.wait_for(client.connect_and_listen(), timeout=120)
+        except asyncio.TimeoutError:
+            print("Timeout waiting for data. Exiting.")
         except Exception as e:
             print(f"Error: {e}")
-            print("Reconnecting in 10 seconds...")
-            await asyncio.sleep(10)
+            sys.exit(1)
+    else:
+        # Run with automatic reconnection
+        while True:
+            try:
+                await client.connect_and_listen()
+            except Exception as e:
+                print(f"Error: {e}")
+                print("Reconnecting in 10 seconds...")
+                await asyncio.sleep(10)
 
 
 if __name__ == "__main__":
