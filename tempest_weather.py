@@ -112,19 +112,18 @@ class TempestWeatherClient:
             record = {
                 'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
                 'device_id': device_id,
-                'serial_number': serial_number,
                 'wind_lull': obs[1],
                 'wind_avg': obs[2],
                 'wind_gust': obs[3],
                 'wind_direction': obs[4],
                 'wind_sample_interval': obs[5],
-                'station_pressure': obs[6],
+                'pressure': obs[6],
                 'air_temperature': obs[7],
                 'relative_humidity': obs[8],
                 'illuminance': obs[9],
-                'uv': obs[10],
+                'uv_index': obs[10],
                 'solar_radiation': obs[11],
-                'rain_accumulated': obs[12],
+                'rain_accumulation': obs[12],
                 'precipitation_type': obs[13],
                 'lightning_avg_distance': obs[14],
                 'lightning_strike_count': obs[15],
@@ -132,8 +131,8 @@ class TempestWeatherClient:
                 'report_interval': obs[17]
             }
 
-            # Store in Supabase - adjust table name as needed
-            result = self.supabase.table('weather_observations').insert(record).execute()
+            # Store in Supabase using your existing table name
+            result = self.supabase.table('observations_tempest').insert(record).execute()
             print(f"✓ Stored observation: Temp={obs[7]}°C, Humidity={obs[8]}%, Wind={obs[2]}m/s")
 
         except Exception as e:
@@ -141,7 +140,7 @@ class TempestWeatherClient:
             print(f"Data: {json.dumps(data, indent=2)}")
 
     async def store_rapid_wind(self, data):
-        """Store rapid wind data"""
+        """Store rapid wind data - optional, creates many records"""
         try:
             obs = data.get('ob', [])
             device_id = data.get('device_id')
@@ -150,18 +149,22 @@ class TempestWeatherClient:
                 return
 
             # Rapid wind format: [epoch, wind_speed, wind_direction]
-            record = {
-                'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
-                'device_id': device_id,
-                'wind_speed': obs[1],
-                'wind_direction': obs[2]
-            }
+            # Note: This generates a LOT of data (every 3 seconds)
+            # Comment this out if you don't have a rapid_wind table or don't want this data
 
-            result = self.supabase.table('rapid_wind').insert(record).execute()
-            print(f"✓ Stored rapid wind: Speed={obs[1]}m/s, Direction={obs[2]}°")
+            # Uncomment below if you create a rapid_wind table:
+            # record = {
+            #     'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
+            #     'device_id': device_id,
+            #     'wind_speed': obs[1],
+            #     'wind_direction': obs[2]
+            # }
+            # result = self.supabase.table('rapid_wind').insert(record).execute()
+
+            print(f"✓ Rapid wind: Speed={obs[1]}m/s, Direction={obs[2]}° (not stored)")
 
         except Exception as e:
-            print(f"Error storing rapid wind: {e}")
+            print(f"Error processing rapid wind: {e}")
 
     async def store_precipitation_event(self, data):
         """Store precipitation event"""
