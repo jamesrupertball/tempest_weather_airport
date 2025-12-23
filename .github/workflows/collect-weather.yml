@@ -32,7 +32,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          python tempest_weather.py --once
+          python tempest_weather.py
 
       - name: Check for errors
         if: failure()

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Tempest Weather Station WebSocket Client
-Fetches real-time weather data from Tempest API and stores it in Supabase
+Tempest Weather Station REST API Client
+Fetches historical weather data from Tempest API and stores it in Supabase
 """
 
 import os
-import json
-import asyncio
-import websockets
-from datetime import datetime
+import requests
+import time
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -19,90 +18,46 @@ TEMPEST_TOKEN = os.getenv('TEMPEST_TOKEN')
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
-# Tempest WebSocket endpoint
-TEMPEST_WS_URL = "wss://ws.weatherflow.com/swd/data"
+# Tempest REST API endpoint
+TEMPEST_API_BASE_URL = "https://swd.weatherflow.com/swd/rest"
+DEVICE_ID = 469455  # Your Tempest station device ID
 
 
 class TempestWeatherClient:
-    def __init__(self, run_once=False):
+    def __init__(self, lookback_minutes=15):
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        self.device_id = None
-        self.run_once = run_once
-        self.data_received = False
+        self.lookback_minutes = lookback_minutes
+        self.session = requests.Session()
+        self.session.headers.update({'Authorization': f'Bearer {TEMPEST_TOKEN}'})
 
-    async def connect_and_listen(self):
-        """Connect to Tempest WebSocket API and listen for weather data"""
-        # Connect with authorization token in URL parameters
-        ws_url_with_auth = f"{TEMPEST_WS_URL}?token={TEMPEST_TOKEN}"
-        async with websockets.connect(ws_url_with_auth) as websocket:
-            # Subscribe to weather data using your token
-            subscribe_message = {
-                "type": "listen_start",
-                "device_id": 469455,  # Tempest station device ID
-                "id": "tempest-listener"
-            }
+    def fetch_observations(self):
+        """Fetch recent observations from Tempest REST API"""
+        # Calculate time range (lookback in minutes to ensure we don't miss data)
+        end_time = int(time.time())
+        start_time = end_time - (self.lookback_minutes * 60)
 
-            await websocket.send(json.dumps(subscribe_message))
-            print(f"Connected to Tempest WebSocket API at {datetime.now()}")
-            print("Waiting for weather data...")
+        url = f"{TEMPEST_API_BASE_URL}/observations/device/{DEVICE_ID}"
+        params = {
+            'time_start': start_time,
+            'time_end': end_time
+        }
 
-            try:
-                async for message in websocket:
-                    data = json.loads(message)
-                    await self.process_message(data)
+        print(f"Fetching observations from {datetime.fromtimestamp(start_time)} to {datetime.fromtimestamp(end_time)}")
 
-                    # If run_once mode and we've received data, exit
-                    if self.run_once and self.data_received:
-                        print(f"Data collected successfully. Exiting.")
-                        return
-            except websockets.exceptions.ConnectionClosed:
-                print("Connection closed. Reconnecting...")
-                await asyncio.sleep(5)
-                await self.connect_and_listen()
+        try:
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
 
-    async def process_message(self, data):
-        """Process incoming WebSocket messages"""
-        msg_type = data.get('type')
+            return data
 
-        print(f"\n[{datetime.now()}] Received: {msg_type}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching observations: {e}")
+            return None
 
-        if msg_type == 'obs_st':
-            # Tempest observation data
-            await self.store_tempest_observation(data)
-        elif msg_type == 'obs_air':
-            # AIR observation data (for older devices)
-            await self.store_air_observation(data)
-        elif msg_type == 'obs_sky':
-            # SKY observation data (for older devices)
-            await self.store_sky_observation(data)
-        elif msg_type == 'rapid_wind':
-            # Rapid wind updates
-            await self.store_rapid_wind(data)
-        elif msg_type == 'evt_precip':
-            # Precipitation event
-            await self.store_precipitation_event(data)
-        elif msg_type == 'evt_strike':
-            # Lightning strike event
-            await self.store_lightning_strike(data)
-        elif msg_type == 'device_status':
-            # Device status update
-            print(f"Device status: {json.dumps(data, indent=2)}")
-        elif msg_type == 'hub_status':
-            # Hub status update
-            print(f"Hub status: {json.dumps(data, indent=2)}")
-        else:
-            print(f"Unknown message type: {json.dumps(data, indent=2)}")
-
-    async def store_tempest_observation(self, data):
+    def store_tempest_observation(self, obs, device_id):
         """Store Tempest observation in Supabase"""
         try:
-            obs = data.get('obs', [[]])[0]  # Get first observation
-            device_id = data.get('device_id')
-            serial_number = data.get('serial_number')
-
-            if not obs:
-                return
-
             # Tempest observation format:
             # [0] Epoch time, [1] Wind Lull, [2] Wind Avg, [3] Wind Gust,
             # [4] Wind Direction, [5] Wind Sample Interval, [6] Station Pressure,
@@ -112,7 +67,7 @@ class TempestWeatherClient:
             # [15] Lightning Strike Count, [16] Battery, [17] Report Interval
 
             record = {
-                'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
+                'timestamp': datetime.fromtimestamp(obs[0], tz=timezone.utc).isoformat(),
                 'device_id': device_id,
                 'wind_lull': obs[1],
                 'wind_avg': obs[2],
@@ -133,141 +88,65 @@ class TempestWeatherClient:
                 'report_interval': obs[17]
             }
 
-            # Store in Supabase using your existing table name
-            result = self.supabase.table('observations_tempest').insert(record).execute()
-            print(f"Stored observation: Temp={obs[7]}C, Humidity={obs[8]}%, Wind={obs[2]}m/s")
-            self.data_received = True
+            # Try to insert; if it fails due to duplicate, that's okay
+            try:
+                self.supabase.table('observations_tempest').insert(record).execute()
+                return True
+            except Exception as insert_error:
+                # Check if it's a duplicate key error
+                error_msg = str(insert_error)
+                if 'duplicate' in error_msg.lower() or 'unique' in error_msg.lower():
+                    # Silently skip duplicates
+                    return False
+                else:
+                    # Re-raise other errors
+                    raise
 
         except Exception as e:
             print(f"Error storing Tempest observation: {e}")
-            print(f"Data: {json.dumps(data, indent=2)}")
+            print(f"Observation data: {obs}")
+            return False
 
-    async def store_rapid_wind(self, data):
-        """Store rapid wind data - generates data every 3 seconds"""
-        try:
-            obs = data.get('ob', [])
-            device_id = data.get('device_id')
+    def collect_and_store(self):
+        """Fetch and store observations"""
+        print(f"\n[{datetime.now()}] Starting data collection")
 
-            if not obs:
-                return
+        data = self.fetch_observations()
 
-            # Rapid wind format: [epoch, wind_speed, wind_direction]
-            # Note: This generates a LOT of data (every 3 seconds)
+        if not data:
+            print("No data received from API")
+            return 0
 
-            record = {
-                'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
-                'device_id': device_id,
-                'wind_speed': obs[1],
-                'wind_direction': obs[2]
-            }
+        obs_list = data.get('obs', [])
+        device_id = data.get('device_id')
 
-            result = self.supabase.table('rapid_wind').insert(record).execute()
-            print(f"Rapid wind: Speed={obs[1]}m/s, Direction={obs[2]}deg")
+        if not obs_list:
+            print("No observations found in response")
+            return 0
 
-        except Exception as e:
-            print(f"Error storing rapid wind: {e}")
-            print(f"Data: {json.dumps(data, indent=2)}")
+        print(f"Received {len(obs_list)} observations")
 
-    async def store_precipitation_event(self, data):
-        """Store precipitation event"""
-        try:
-            record = {
-                'timestamp': datetime.fromtimestamp(data.get('evt', [0])[0]).isoformat(),
-                'device_id': data.get('device_id'),
-                'serial_number': data.get('serial_number')
-            }
+        stored_count = 0
+        skipped_count = 0
 
-            result = self.supabase.table('precipitation_events').insert(record).execute()
-            print(f"Precipitation event recorded")
+        for obs in obs_list:
+            if self.store_tempest_observation(obs, device_id):
+                stored_count += 1
+                # Print details of first and last observation
+                if stored_count == 1 or stored_count == len(obs_list):
+                    timestamp = datetime.fromtimestamp(obs[0])
+                    print(f"  [{timestamp}] Temp={obs[7]}°C, Humidity={obs[8]}%, Wind={obs[2]}m/s")
+            else:
+                skipped_count += 1
 
-        except Exception as e:
-            print(f"Error storing precipitation event: {e}")
+        print(f"\nStored {stored_count} observations")
+        if skipped_count > 0:
+            print(f"Skipped {skipped_count} duplicate observations")
 
-    async def store_lightning_strike(self, data):
-        """Store lightning strike event"""
-        try:
-            evt = data.get('evt', [])
-
-            record = {
-                'timestamp': datetime.fromtimestamp(evt[0]).isoformat(),
-                'device_id': data.get('device_id'),
-                'serial_number': data.get('serial_number'),
-                'distance': evt[1],
-                'energy': evt[2]
-            }
-
-            result = self.supabase.table('lightning_strikes').insert(record).execute()
-            print(f"Lightning strike: Distance={evt[1]}km, Energy={evt[2]}")
-
-        except Exception as e:
-            print(f"Error storing lightning strike: {e}")
-
-    async def store_air_observation(self, data):
-        """Store AIR observation (for legacy WeatherFlow devices)"""
-        try:
-            obs = data.get('obs', [[]])[0]
-
-            # AIR format: [epoch, station_pressure, air_temperature,
-            #              relative_humidity, lightning_strike_count,
-            #              lightning_avg_distance, battery, report_interval]
-
-            record = {
-                'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
-                'device_id': data.get('device_id'),
-                'serial_number': data.get('serial_number'),
-                'station_pressure': obs[1],
-                'air_temperature': obs[2],
-                'relative_humidity': obs[3],
-                'lightning_strike_count': obs[4],
-                'lightning_avg_distance': obs[5],
-                'battery': obs[6],
-                'report_interval': obs[7]
-            }
-
-            result = self.supabase.table('air_observations').insert(record).execute()
-            print(f"Stored AIR observation")
-
-        except Exception as e:
-            print(f"Error storing AIR observation: {e}")
-
-    async def store_sky_observation(self, data):
-        """Store SKY observation (for legacy WeatherFlow devices)"""
-        try:
-            obs = data.get('obs', [[]])[0]
-
-            # SKY format: [epoch, illuminance, uv, rain_accumulated,
-            #              wind_lull, wind_avg, wind_gust, wind_direction,
-            #              battery, report_interval, solar_radiation,
-            #              local_day_rain_accumulation, precipitation_type,
-            #              wind_sample_interval]
-
-            record = {
-                'timestamp': datetime.fromtimestamp(obs[0]).isoformat(),
-                'device_id': data.get('device_id'),
-                'serial_number': data.get('serial_number'),
-                'illuminance': obs[1],
-                'uv': obs[2],
-                'rain_accumulated': obs[3],
-                'wind_lull': obs[4],
-                'wind_avg': obs[5],
-                'wind_gust': obs[6],
-                'wind_direction': obs[7],
-                'battery': obs[8],
-                'report_interval': obs[9],
-                'solar_radiation': obs[10],
-                'local_day_rain_accumulation': obs[11],
-                'precipitation_type': obs[12],
-                'wind_sample_interval': obs[13]
-            }
-
-            result = self.supabase.table('sky_observations').insert(record).execute()
-            print(f"Stored SKY observation")
-
-        except Exception as e:
-            print(f"Error storing SKY observation: {e}")
+        return stored_count
 
 
-async def main():
+def main():
     """Main entry point"""
     import sys
 
@@ -280,41 +159,56 @@ async def main():
         print("ERROR: SUPABASE_URL or SUPABASE_KEY not found in .env file")
         return
 
-    # Check if --once flag is passed
-    run_once = '--once' in sys.argv
+    # Parse command line arguments
+    lookback_minutes = 15  # Default lookback period
+    continuous = '--continuous' in sys.argv
+
+    # Check for custom lookback period
+    for arg in sys.argv:
+        if arg.startswith('--lookback='):
+            try:
+                lookback_minutes = int(arg.split('=')[1])
+            except ValueError:
+                print(f"Invalid lookback value: {arg}")
+                return
 
     print("=" * 60)
-    print("Tempest Weather Station WebSocket Client")
+    print("Tempest Weather Station REST API Client")
     print("=" * 60)
     print(f"Supabase URL: {SUPABASE_URL}")
     print(f"Token: {TEMPEST_TOKEN[:10]}...")
-    print(f"Mode: {'Single collection' if run_once else 'Continuous monitoring'}")
+    print(f"Device ID: {DEVICE_ID}")
+    print(f"Lookback period: {lookback_minutes} minutes")
+    print(f"Mode: {'Continuous monitoring' if continuous else 'Single collection'}")
     print("=" * 60)
 
-    client = TempestWeatherClient(run_once=run_once)
+    client = TempestWeatherClient(lookback_minutes=lookback_minutes)
 
-    if run_once:
+    if continuous:
+        # Continuous mode - run every 5 minutes
+        print("\nRunning in continuous mode (Ctrl+C to stop)")
+        try:
+            while True:
+                client.collect_and_store()
+                print(f"\nWaiting 5 minutes until next collection...")
+                time.sleep(300)  # Wait 5 minutes
+        except KeyboardInterrupt:
+            print("\n\nShutting down...")
+    else:
         # Single run mode - collect data and exit
         try:
-            await asyncio.wait_for(client.connect_and_listen(), timeout=120)
-        except asyncio.TimeoutError:
-            print("Timeout waiting for data. Exiting.")
+            count = client.collect_and_store()
+            if count > 0:
+                print(f"\nSuccess! Collected {count} observations")
+            else:
+                print("\nNo new observations collected")
+                sys.exit(1)
         except Exception as e:
             print(f"Error: {e}")
+            import traceback
+            traceback.print_exc()
             sys.exit(1)
-    else:
-        # Run with automatic reconnection
-        while True:
-            try:
-                await client.connect_and_listen()
-            except Exception as e:
-                print(f"Error: {e}")
-                print("Reconnecting in 10 seconds...")
-                await asyncio.sleep(10)
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n\nShutting down...")
+    main()
