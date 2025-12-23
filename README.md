@@ -157,7 +157,35 @@ CREATE TABLE sky_observations (
 
 ## Usage
 
-Run the weather data collector:
+### Automated Collection with GitHub Actions (Recommended)
+
+This repository includes a GitHub Actions workflow that automatically runs every 5 minutes to collect weather data.
+
+**Setup GitHub Secrets:**
+
+1. Go to your repository on GitHub: `https://github.com/jamesrupertball/tempest_weather_airport`
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret** and add these three secrets:
+
+   - Name: `TEMPEST_TOKEN`
+     Value: `35c7e397-bcef-43f8-837a-cebd758fc704`
+
+   - Name: `SUPABASE_URL`
+     Value: `https://quplbkikhpcumjvzumkz.supabase.co`
+
+   - Name: `SUPABASE_KEY`
+     Value: Your Supabase service role key
+
+4. The workflow will automatically start running every 5 minutes
+5. You can manually trigger it from the **Actions** tab → **Collect Weather Data** → **Run workflow**
+
+**Monitor the workflow:**
+- Go to the **Actions** tab to see runs and logs
+- Each run collects data for 4 minutes before stopping
+
+### Manual Local Usage
+
+Run the weather data collector locally:
 
 ```bash
 python tempest_weather.py
