@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>00MN Weather - Pilot Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1>00MN Weather</h1>
+        <p class="subtitle">Battle Lake Municipal Airport - Battle Lake, MN</p>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+        <!-- View Toggle -->
+        <div class="view-toggle">
+            <button id="toggleWind" class="toggle-btn active">Wind Data</button>
+            <button id="toggleWeather" class="toggle-btn">Weather Obs</button>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="last-updated">
+            <div class="timestamp-container">
+                <div class="timestamp-row">
+                    <span class="timestamp-label">Zulu Time:</span>
+                    <span id="timestampZulu" class="timestamp-value">--</span>
+                </div>
+                <div class="timestamp-row">
+                    <span class="timestamp-label">Local Time:</span>
+                    <span id="timestampLocal" class="timestamp-value">--</span>
+                </div>
+                <div class="timestamp-relative">
+                    <span id="lastUpdated">--</span>
+                </div>
+                <div class="refresh-info">
+                    Auto-refresh: <span id="refreshCountdown">60</span>s
+                </div>
+            </div>
+        </div>
+
+        <!-- Wind Display Section -->
+        <section id="windView" class="wind-section view-content">
+            <h2>Current Wind</h2>
+
+            <!-- Compass Rose with Wind Arrow -->
+            <div class="compass-container">
+                <div class="compass-rose">
+                    <!-- Cardinal directions -->
+                    <span class="cardinal north">N</span>
+                    <span class="cardinal east">E</span>
+                    <span class="cardinal south">S</span>
+                    <span class="cardinal west">W</span>
+
+                    <!-- Compass rings -->
+                    <div class="compass-ring outer-ring"></div>
+                    <div class="compass-ring inner-ring"></div>
+
+                    <!-- Runway depiction (static, aligned with 240/060) -->
+                    <div class="runway-depiction">
+                        <div class="runway-centerline"></div>
+                        <div class="runway-marking runway-06">06</div>
+                        <div class="runway-marking runway-24">24</div>
+                    </div>
+
+                    <!-- Wind arrow (rotates to show FROM direction) -->
+                    <div id="windArrow" class="wind-arrow">
+                        <div class="arrow-shaft"></div>
+                        <div class="arrow-head"></div>
+                        <div class="arrow-tail"></div>
+                    </div>
+
+                    <!-- Center dot -->
+                    <div class="compass-center"></div>
+                </div>
+            </div>
+
+            <!-- Wind Data -->
+            <div class="wind-data">
+                <div class="wind-metric">
+                    <span class="label">Direction</span>
+                    <span id="windDirection" class="value large">---°</span>
+                </div>
+                <div class="wind-metric">
+                    <span class="label">Speed</span>
+                    <span id="windSpeed" class="value large">-- kt</span>
+                </div>
+                <div class="wind-metric">
+                    <span class="label">Gusts</span>
+                    <span id="windGust" class="value large">-- kt</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Runway Wind Components -->
+        <section class="runway-section view-content">
+            <h2>Runway Wind Components</h2>
+
+            <!-- Runway 24/06 -->
+            <div class="runway-card">
+                <div class="runway-header">
+                    <h3>Runway 24 / 06</h3>
+                    <p class="runway-heading">Heading 240° / 060°</p>
+                </div>
+
+                <div class="runway-winds">
+                    <!-- Runway 24 -->
+                    <div class="runway-end">
+                        <span class="runway-number">24</span>
+                        <div class="wind-components">
+                            <div class="component">
+                                <span class="component-label">Headwind</span>
+                                <span id="rwy24Headwind" class="component-value headwind">-- kt</span>
+                            </div>
+                            <div class="component">
+                                <span class="component-label">Crosswind</span>
+                                <span id="rwy24Crosswind" class="component-value crosswind">-- kt</span>
+                                <span id="rwy24CrosswindDir" class="crosswind-dir"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="runway-divider"></div>
+
+                    <!-- Runway 06 -->
+                    <div class="runway-end">
+                        <span class="runway-number">06</span>
+                        <div class="wind-components">
+                            <div class="component">
+                                <span class="component-label">Headwind</span>
+                                <span id="rwy06Headwind" class="component-value headwind">-- kt</span>
+                            </div>
+                            <div class="component">
+                                <span class="component-label">Crosswind</span>
+                                <span id="rwy06Crosswind" class="component-value crosswind">-- kt</span>
+                                <span id="rwy06CrosswindDir" class="crosswind-dir"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Legend/Info -->
+        <section class="info-section view-content">
+            <h3>Wind Component Guide</h3>
+            <ul class="info-list">
+                <li><strong>Headwind:</strong> Wind from straight ahead (positive) or tailwind (negative)</li>
+                <li><strong>Crosswind:</strong> Wind from the side - marked with L (left) or R (right)</li>
+                <li><strong>Wind Arrow:</strong> Points to where wind is going</li>
+                <li>Wind speeds shown in knots (kt)</li>
+            </ul>
+        </section>
+
+        <!-- Weather Observations Section -->
+        <section id="weatherView" class="weather-section view-content" style="display: none;">
+            <h2>Weather Observations</h2>
+
+            <!-- Temperature -->
+            <div class="weather-card">
+                <div class="weather-metric-large">
+                    <span class="metric-icon">🌡️</span>
+                    <div class="metric-data">
+                        <span class="label">Temperature</span>
+                        <span id="temperature" class="value huge">--°F</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pressure -->
+            <div class="weather-card">
+                <div class="weather-metric-large">
+                    <span class="metric-icon">🔽</span>
+                    <div class="metric-data">
+                        <span class="label">Barometric Pressure</span>
+                        <span id="pressure" class="value huge">-- inHg</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relative Humidity -->
+            <div class="weather-card">
+                <div class="weather-metric-large">
+                    <span class="metric-icon">💧</span>
+                    <div class="metric-data">
+                        <span class="label">Relative Humidity</span>
+                        <span id="humidity" class="value huge">--%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Density Altitude -->
+            <div class="weather-card density-altitude">
+                <div class="weather-metric-large">
+                    <span class="metric-icon">✈️</span>
+                    <div class="metric-data">
+                        <span class="label">Density Altitude</span>
+                        <span id="densityAltitude" class="value huge">-- ft</span>
+                        <span id="densityAltitudeDelta" class="delta-value">--</span>
+                    </div>
+                </div>
+                <div class="info-note">
+                    Calculated for field elevation 1,391 ft MSL
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Data from Tempest Weather Station</p>
+    </footer>
+
+    <!-- Load Supabase client from CDN (UMD bundle) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+
+    <!-- Our application script -->
+    <script src="app.js"></script>
+</body>
+</html>
