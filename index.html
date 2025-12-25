@@ -61,8 +61,8 @@
                     <!-- Runway depiction (static, aligned with 240/060) -->
                     <div class="runway-depiction">
                         <div class="runway-centerline"></div>
-                        <div class="runway-marking runway-06">06</div>
-                        <div class="runway-marking runway-24">24</div>
+                        <div class="runway-marking runway-06">24</div> <!--Switch to match landing direction-->
+                        <div class="runway-marking runway-24">06</div>
                     </div>
 
                     <!-- Wind arrow (rotates to show FROM direction) -->
@@ -98,26 +98,26 @@
         <section class="runway-section view-content">
             <h2>Runway Wind Components</h2>
 
-            <!-- Runway 24/06 -->
+            <!-- Runway 06/24 -->
             <div class="runway-card">
                 <div class="runway-header">
-                    <h3>Runway 24 / 06</h3>
-                    <p class="runway-heading">Heading 240° / 060°</p>
+                    <h3>Runway 06/24</h3>
+                    <p class="runway-heading">Heading 060° / 240°</p>
                 </div>
 
                 <div class="runway-winds">
-                    <!-- Runway 24 -->
+                    <!-- Runway 06 -->
                     <div class="runway-end">
-                        <span class="runway-number">24</span>
+                        <span class="runway-number">06</span>
                         <div class="wind-components">
                             <div class="component">
-                                <span class="component-label">Headwind</span>
-                                <span id="rwy24Headwind" class="component-value headwind">-- kt</span>
+                                <span id="rwy06HeadwindLabel" class="component-label">Headwind</span>
+                                <span id="rwy06Headwind" class="component-value headwind">-- kt</span>
                             </div>
                             <div class="component">
                                 <span class="component-label">Crosswind</span>
-                                <span id="rwy24Crosswind" class="component-value crosswind">-- kt</span>
-                                <span id="rwy24CrosswindDir" class="crosswind-dir"></span>
+                                <span id="rwy06Crosswind" class="component-value crosswind">-- kt</span>
+                                <span id="rwy06CrosswindDir" class="crosswind-dir"></span>
                             </div>
                         </div>
                     </div>
@@ -125,18 +125,18 @@
                     <!-- Divider -->
                     <div class="runway-divider"></div>
 
-                    <!-- Runway 06 -->
+                    <!-- Runway 24 -->
                     <div class="runway-end">
-                        <span class="runway-number">06</span>
+                        <span class="runway-number">24</span>
                         <div class="wind-components">
                             <div class="component">
-                                <span class="component-label">Headwind</span>
-                                <span id="rwy06Headwind" class="component-value headwind">-- kt</span>
+                                <span id="rwy24HeadwindLabel" class="component-label">Headwind</span>
+                                <span id="rwy24Headwind" class="component-value headwind">-- kt</span>
                             </div>
                             <div class="component">
                                 <span class="component-label">Crosswind</span>
-                                <span id="rwy06Crosswind" class="component-value crosswind">-- kt</span>
-                                <span id="rwy06CrosswindDir" class="crosswind-dir"></span>
+                                <span id="rwy24Crosswind" class="component-value crosswind">-- kt</span>
+                                <span id="rwy24CrosswindDir" class="crosswind-dir"></span>
                             </div>
                         </div>
                     </div>
@@ -148,10 +148,10 @@
         <section class="info-section view-content">
             <h3>Wind Component Guide</h3>
             <ul class="info-list">
-                <li><strong>Headwind:</strong> Wind from straight ahead (positive) or tailwind (negative)</li>
+                <li><strong>Headwind/Tailwind:</strong> Wind from straight ahead (green) or behind (red)</li>
                 <li><strong>Crosswind:</strong> Wind from the side - marked with L (left) or R (right)</li>
-                <li><strong>Wind Arrow:</strong> Points to where wind is going</li>
-                <li>Wind speeds shown in knots (kt)</li>
+                <li><strong>Wind Arrow:</strong> Points to where the wind is going</li>
+                <li>Wind speeds are shown in knots (kt)</li>
             </ul>
         </section>
 
@@ -212,12 +212,26 @@
     <!-- Footer -->
     <footer>
         <p>Data from Tempest Weather Station</p>
+
+        <div class="disclaimer">
+            <h4>⚠️ Important Safety Notice</h4>
+            <p><strong>This is NOT official weather data.</strong> This information is provided for supplemental situational awareness only and should never be used as the sole source for flight planning or go/no-go decisions.</p>
+
+            <p>All pilots are responsible for obtaining an official weather briefing from authorized sources (e.g., 1800wxbrief.com, Flight Service, ForeFlight, etc.) and making their own independent judgment regarding flight safety.</p>
+
+            <p>This data comes from a single weather station and may not accurately represent conditions at altitude, other locations on the field, or actual flight conditions. Weather equipment may malfunction or provide inaccurate readings.</p>
+
+            <p><strong>USE AT YOUR OWN RISK.</strong> This service is provided "as-is" without any warranties. The operator assumes no liability for decisions made using this information.</p>
+        </div>
     </footer>
 
     <!-- Load Supabase client from CDN (UMD bundle) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 
+    <!-- Load configuration (must load before app.js) -->
+    <script src="config.js"></script>
+
     <!-- Our application script -->
-    <script src="app.js"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>

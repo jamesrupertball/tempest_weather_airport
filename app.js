@@ -7,29 +7,16 @@
 // CONFIGURATION
 // ============================================================================
 
-// Supabase Configuration
-// IMPORTANT: Replace these with your actual Supabase credentials
-// For security, consider using environment variables or a config file
-const SUPABASE_URL = 'https://quplbkikhpcumjvzumkz.supabase.co';  // e.g., 'https://xxxxx.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1cGxia2lraHBjdW1qdnp1bWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYxODE4ODgsImV4cCI6MjA4MTc1Nzg4OH0.bYGdwAey1q8SfKJXfcpNek-DmbNW0CZpRhCgfFK0_Kg';
+// Configuration is now loaded from config.js
+// This keeps sensitive credentials out of the main application code
+// See config.example.js for setup instructions
 
-// Runway Configuration for 00MN Airlake Airport
-const RUNWAYS = {
-    runway24: {
-        heading: 240,  // Runway 24 magnetic heading (240°)
-        name: '24'
-    },
-    runway06: {
-        heading: 60,   // Runway 06 magnetic heading (060°)
-        name: '06'
-    }
-};
-
-// Refresh interval in milliseconds (60 seconds)
-const REFRESH_INTERVAL = 60000;
-
-// Field elevation for 00MN (Battle Lake Municipal Airport) in feet MSL
-const FIELD_ELEVATION = 1391;
+// Extract configuration values
+const SUPABASE_URL = config.supabase.url;
+const SUPABASE_ANON_KEY = config.supabase.anonKey;
+const RUNWAYS = config.runways;
+const REFRESH_INTERVAL = config.refreshInterval;
+const FIELD_ELEVATION = config.fieldElevation;
 
 // ============================================================================
 // INITIALIZATION
@@ -313,13 +300,16 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
 
     // Display Runway 24 components
     const rwy24Headwind = document.getElementById('rwy24Headwind');
+    const rwy24HeadwindLabel = document.getElementById('rwy24HeadwindLabel');
     const headwind24 = Math.round(rwy24Components.headwind);
 
     if (headwind24 >= 0) {
+        rwy24HeadwindLabel.textContent = 'Headwind';
         rwy24Headwind.textContent = `${headwind24} kt`;
         rwy24Headwind.className = 'component-value headwind';
     } else {
-        rwy24Headwind.textContent = `${Math.abs(headwind24)} kt (tail)`;
+        rwy24HeadwindLabel.textContent = 'Tailwind';
+        rwy24Headwind.textContent = `${Math.abs(headwind24)} kt`;
         rwy24Headwind.className = 'component-value tailwind';
     }
 
@@ -330,13 +320,16 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
 
     // Display Runway 06 components
     const rwy06Headwind = document.getElementById('rwy06Headwind');
+    const rwy06HeadwindLabel = document.getElementById('rwy06HeadwindLabel');
     const headwind06 = Math.round(rwy06Components.headwind);
 
     if (headwind06 >= 0) {
+        rwy06HeadwindLabel.textContent = 'Headwind';
         rwy06Headwind.textContent = `${headwind06} kt`;
         rwy06Headwind.className = 'component-value headwind';
     } else {
-        rwy06Headwind.textContent = `${Math.abs(headwind06)} kt (tail)`;
+        rwy06HeadwindLabel.textContent = 'Tailwind';
+        rwy06Headwind.textContent = `${Math.abs(headwind06)} kt`;
         rwy06Headwind.className = 'component-value tailwind';
     }
 
