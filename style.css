@@ -89,7 +89,9 @@ main {
     backdrop-filter: blur(10px);
     border-radius: 8px;
     padding: 0.75rem 1rem;
-    display: inline-block;
+    display: block;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
 .timestamp-row {
@@ -572,6 +574,26 @@ footer {
 
 footer p {
     margin: 0.3rem 0;
+}
+
+/* Safety Disclaimer Section */
+section.disclaimer {
+    background: rgba(255, 243, 205, 0.95);
+    border: 2px solid #f39c12;
+}
+
+section.disclaimer h4 {
+    color: #e67e22;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+section.disclaimer p {
+    color: #34495e;
+    line-height: 1.7;
+    margin: 0.8rem 0;
+    text-align: left;
 }
 
 /* Responsive adjustments for very small screens */

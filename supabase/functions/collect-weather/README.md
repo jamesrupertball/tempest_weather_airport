@@ -28,4 +28,4 @@ You can test the function locally or invoke it from the Supabase Dashboard or vi
 
 ## Scheduling
 
-This function is designed to be called by a pg_cron job every 5 minutes. See the SQL setup script for scheduling configuration.
+This function is designed to be called by a pg_cron job every 1 minute. See the SQL setup script for scheduling configuration.

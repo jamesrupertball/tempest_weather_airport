@@ -1,5 +1,5 @@
 // Supabase Edge Function to collect Tempest weather data
-// This function is triggered by pg_cron every 5 minutes
+// This function is triggered by pg_cron every 1 minutes
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'

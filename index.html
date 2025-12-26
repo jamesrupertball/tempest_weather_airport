@@ -15,12 +15,6 @@
 
     <!-- Main Container -->
     <main>
-        <!-- View Toggle -->
-        <div class="view-toggle">
-            <button id="toggleWind" class="toggle-btn active">Wind Data</button>
-            <button id="toggleWeather" class="toggle-btn">Weather Obs</button>
-        </div>
-
         <!-- Last Updated -->
         <div class="last-updated">
             <div class="timestamp-container">
@@ -39,6 +33,12 @@
                     Auto-refresh: <span id="refreshCountdown">60</span>s
                 </div>
             </div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="view-toggle">
+            <button id="toggleWind" class="toggle-btn active">Wind Data</button>
+            <button id="toggleWeather" class="toggle-btn">Weather Obs</button>
         </div>
 
         <!-- Wind Display Section -->
@@ -207,13 +207,9 @@
                 </div>
             </div>
         </section>
-    </main>
 
-    <!-- Footer -->
-    <footer>
-        <p>Data from Tempest Weather Station</p>
-
-        <div class="disclaimer">
+        <!-- Safety Disclaimer -->
+        <section class="disclaimer view-content">
             <h4>⚠️ Important Safety Notice</h4>
             <p><strong>This is NOT official weather data.</strong> This information is provided for supplemental situational awareness only and should never be used as the sole source for flight planning or go/no-go decisions.</p>
 
@@ -222,7 +218,11 @@
             <p>This data comes from a single weather station and may not accurately represent conditions at altitude, other locations on the field, or actual flight conditions. Weather equipment may malfunction or provide inaccurate readings.</p>
 
             <p><strong>USE AT YOUR OWN RISK.</strong> This service is provided "as-is" without any warranties. The operator assumes no liability for decisions made using this information.</p>
-        </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
     </footer>
 
     <!-- Load Supabase client from CDN (UMD bundle) -->
