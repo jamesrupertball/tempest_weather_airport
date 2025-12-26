@@ -3,6 +3,7 @@
 
 const STATIONS = ['KFFM', 'KADC'];
 const REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+const CACHE_KEY = 'metar_cache';
 
 let refreshTimer = null;
 let countdownTimer = null;
@@ -15,8 +16,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const { createClient } = supabase;
     supabaseClient = createClient(config.supabase.url, config.supabase.anonKey);
 
-    fetchMetarData();
-    startAutoRefresh();
+    // Try to load from cache first
+    const cached = loadFromCache();
+    if (cached) {
+        console.log('Using cached METAR data');
+        displayCachedData(cached.data);
+        updateLastFetched(cached.timestamp);
+
+        // Start auto-refresh with remaining time until next fetch
+        const timeUntilRefresh = Math.max(0, (cached.timestamp + REFRESH_INTERVAL) - Date.now());
+        startAutoRefresh(timeUntilRefresh);
+
+        // If cache is stale, fetch fresh data in background
+        if (timeUntilRefresh === 0) {
+            fetchMetarData();
+        }
+    } else {
+        console.log('No valid cache, fetching fresh data');
+        fetchMetarData();
+        startAutoRefresh();
+    }
 
     // Manual refresh button
     document.getElementById('manualRefresh').addEventListener('click', () => {
@@ -24,6 +43,59 @@ document.addEventListener('DOMContentLoaded', () => {
         resetAutoRefresh();
     });
 });
+
+/**
+ * Load METAR data from cache
+ */
+function loadFromCache() {
+    try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (!cached) return null;
+
+        const { data, timestamp } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+
+        // Only use cache if it's less than REFRESH_INTERVAL old
+        if (age < REFRESH_INTERVAL) {
+            return { data, timestamp };
+        }
+
+        // Cache is stale, remove it
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+    } catch (error) {
+        console.error('Error loading cache:', error);
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+    }
+}
+
+/**
+ * Save METAR data to cache
+ */
+function saveToCache(data) {
+    try {
+        const cacheObject = {
+            data: data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObject));
+        console.log('METAR data cached successfully');
+    } catch (error) {
+        console.error('Error saving to cache:', error);
+    }
+}
+
+/**
+ * Display cached METAR data
+ */
+function displayCachedData(data) {
+    if (Array.isArray(data) && data.length > 0) {
+        data.forEach(metar => {
+            displayMetar(metar);
+        });
+    }
+}
 
 /**
  * Fetch METAR data via Supabase Edge Function
@@ -46,6 +118,9 @@ async function fetchMetarData() {
 
         // Update display for each station
         if (Array.isArray(data) && data.length > 0) {
+            // Save to cache
+            saveToCache(data);
+
             data.forEach(metar => {
                 displayMetar(metar);
             });
@@ -443,9 +518,9 @@ function updateFlightCategoryBadge(station, category) {
 /**
  * Update last fetched timestamp
  */
-function updateLastFetched() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', {
+function updateLastFetched(timestamp) {
+    const date = timestamp ? new Date(timestamp) : new Date();
+    const timeString = date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
@@ -473,14 +548,29 @@ function displayError(message) {
 /**
  * Start auto-refresh timer
  */
-function startAutoRefresh() {
-    nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+function startAutoRefresh(initialDelay = REFRESH_INTERVAL) {
+    nextRefreshTime = Date.now() + initialDelay;
 
-    // Main refresh timer
-    refreshTimer = setInterval(() => {
-        fetchMetarData();
-        nextRefreshTime = Date.now() + REFRESH_INTERVAL;
-    }, REFRESH_INTERVAL);
+    // Main refresh timer - use setTimeout for first refresh if delay is custom
+    if (initialDelay !== REFRESH_INTERVAL) {
+        // Schedule first refresh at custom time
+        refreshTimer = setTimeout(() => {
+            fetchMetarData();
+            nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+
+            // Then switch to regular interval
+            refreshTimer = setInterval(() => {
+                fetchMetarData();
+                nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+            }, REFRESH_INTERVAL);
+        }, initialDelay);
+    } else {
+        // Normal interval from the start
+        refreshTimer = setInterval(() => {
+            fetchMetarData();
+            nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+        }, REFRESH_INTERVAL);
+    }
 
     // Countdown timer
     startCountdown();
