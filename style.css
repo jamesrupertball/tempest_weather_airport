@@ -33,6 +33,30 @@ header h1 {
     color: #7f8c8d;
 }
 
+.header-nav {
+    margin-top: 0.75rem;
+}
+
+.nav-link-btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.nav-link-btn:hover {
+    background: #2980b9;
+}
+
+.nav-link-btn:active {
+    transform: scale(0.98);
+}
+
 /* Main Container */
 main {
     max-width: 500px;

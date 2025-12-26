@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>METAR API Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        pre {
+            background: #000;
+            padding: 15px;
+            border: 1px solid #00ff00;
+            overflow-x: auto;
+        }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .error {
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>METAR API Test</h1>
+    <button onclick="testFetch()">Test Fetch</button>
+    <div id="output"></div>
+
+    <script>
+        async function testFetch() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Fetching...</p>';
+
+            try {
+                const url = 'https://aviationweather.gov/api/data/metar?ids=KFFM,KADC&format=json';
+                console.log('Fetching from:', url);
+
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Data received:', data);
+
+                output.innerHTML = '<h2>Success!</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+
+            } catch (error) {
+                console.error('Error:', error);
+                output.innerHTML = '<p class="error">Error: ' + error.message + '</p><pre>' + error.stack + '</pre>';
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            testFetch();
+        });
+    </script>
+</body>
+</html>

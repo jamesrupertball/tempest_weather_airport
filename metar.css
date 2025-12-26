@@ -1,0 +1,350 @@
+/* METAR Page Specific Styles */
+
+/* Override main container width for METAR page */
+main {
+    max-width: 1200px !important;
+    width: 100%;
+}
+
+/* Navigation Bar */
+.nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.nav-link {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.refresh-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.refresh-btn:hover {
+    background: #0056b3;
+}
+
+.refresh-btn:active {
+    transform: scale(0.98);
+}
+
+/* METAR Container */
+.metar-section {
+    margin: 2rem 0;
+}
+
+.metar-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+/* METAR Cards */
+.metar-card {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+}
+
+.metar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.station-info {
+    flex: 1;
+}
+
+.station-id {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+}
+
+.station-name {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Flight Category Badge */
+.flight-category-badge {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-text {
+    display: block;
+}
+
+/* Standard Aviation Flight Category Colors */
+.flight-category-badge.vfr {
+    background: #00c800;
+    color: #000000;
+}
+
+.flight-category-badge.mvfr {
+    background: #0066ff;
+    color: #ffffff;
+}
+
+.flight-category-badge.ifr {
+    background: #ff0000;
+    color: #ffffff;
+}
+
+.flight-category-badge.lifr {
+    background: #ff00ff;
+    color: #ffffff;
+}
+
+/* Raw METAR Display */
+.metar-raw {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #007bff;
+}
+
+.raw-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.raw-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    color: #ffffff;
+    line-height: 1.6;
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Decoded Information */
+.metar-decoded {
+    margin-top: 1.5rem;
+}
+
+.metar-decoded h3 {
+    font-size: 1.2rem;
+    margin: 0 0 1rem 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.decoded-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.decoded-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.decoded-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.decoded-value {
+    font-size: 1rem;
+    color: #ffffff;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* Legend Section */
+.legend-section {
+    margin: 3rem 0 2rem 0;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.legend-section h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.legend-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    min-width: 65px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.legend-badge.vfr {
+    background: #00c800;
+    color: #000000;
+}
+
+.legend-badge.mvfr {
+    background: #0066ff;
+    color: #ffffff;
+}
+
+.legend-badge.ifr {
+    background: #ff0000;
+    color: #ffffff;
+}
+
+.legend-badge.lifr {
+    background: #ff00ff;
+    color: #ffffff;
+}
+
+.legend-description {
+    flex: 1;
+}
+
+.legend-description strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+}
+
+.legend-description p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: 3rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+}
+
+footer a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+/* Cards always stack vertically for better mobile readability */
+.metar-container {
+    grid-template-columns: 1fr;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+    .nav-bar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .nav-link,
+    .refresh-btn {
+        text-align: center;
+    }
+
+    .metar-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .flight-category-badge {
+        align-self: flex-start;
+    }
+
+    .station-id {
+        font-size: 1.6rem;
+    }
+
+    .decoded-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .legend-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Loading State */
+.raw-text.loading {
+    opacity: 0.5;
+    font-style: italic;
+}
+
+/* Error State */
+.raw-text[style*="color: rgb(255, 0, 0)"] {
+    font-family: inherit;
+    font-style: italic;
+}
