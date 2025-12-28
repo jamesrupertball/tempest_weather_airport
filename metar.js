@@ -435,6 +435,12 @@ function formatClouds(clouds) {
 function formatTemperature(tempC) {
     if (tempC === null || tempC === undefined) return 'Not reported';
 
+    // Normalize -0 to 0 (JavaScript has both +0 and -0)
+    // M00 in METAR means 0°C, not "minus zero"
+    if (Object.is(tempC, -0)) {
+        tempC = 0;
+    }
+
     const tempF = (tempC * 9/5) + 32;
     return `${tempC.toFixed(1)}°C (${tempF.toFixed(1)}°F)`;
 }
