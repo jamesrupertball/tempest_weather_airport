@@ -224,8 +224,8 @@ function displayWeatherData(observation) {
 
     // Update wind display
     document.getElementById('windDirection').textContent = `${Math.round(windDirection)}°`;
-    document.getElementById('windSpeed').textContent = `${Math.round(windSpeedKt)} kt`;
-    document.getElementById('windGust').textContent = `${Math.round(windGustKt)} kt`;
+    document.getElementById('windSpeed').textContent = `${windSpeedKt.toFixed(1)} kt`;
+    document.getElementById('windGust').textContent = `${windGustKt.toFixed(1)} kt`;
 
     // Update last updated timestamp
     updateTimestamp(timestamp);
@@ -302,19 +302,19 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     const rwy24Headwind = document.getElementById('rwy24Headwind');
     const rwy24HeadwindLabel = document.getElementById('rwy24HeadwindLabel');
 
-    // Keep full precision until final display rounding
+    // Display with 1 decimal place for accuracy
     if (rwy24Components.headwind >= 0) {
         rwy24HeadwindLabel.textContent = 'Headwind';
-        rwy24Headwind.textContent = `${Math.round(rwy24Components.headwind)} kt`;
+        rwy24Headwind.textContent = `${rwy24Components.headwind.toFixed(1)} kt`;
         rwy24Headwind.className = 'component-value headwind';
     } else {
         rwy24HeadwindLabel.textContent = 'Tailwind';
-        rwy24Headwind.textContent = `${Math.round(Math.abs(rwy24Components.headwind))} kt`;
+        rwy24Headwind.textContent = `${Math.abs(rwy24Components.headwind).toFixed(1)} kt`;
         rwy24Headwind.className = 'component-value tailwind';
     }
 
     document.getElementById('rwy24Crosswind').textContent =
-        `${Math.round(rwy24Components.crosswind)} kt`;
+        `${rwy24Components.crosswind.toFixed(1)} kt`;
     document.getElementById('rwy24CrosswindDir').textContent =
         `(${rwy24Components.crosswindDirection})`;
 
@@ -322,19 +322,19 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     const rwy06Headwind = document.getElementById('rwy06Headwind');
     const rwy06HeadwindLabel = document.getElementById('rwy06HeadwindLabel');
 
-    // Keep full precision until final display rounding
+    // Display with 1 decimal place for accuracy
     if (rwy06Components.headwind >= 0) {
         rwy06HeadwindLabel.textContent = 'Headwind';
-        rwy06Headwind.textContent = `${Math.round(rwy06Components.headwind)} kt`;
+        rwy06Headwind.textContent = `${rwy06Components.headwind.toFixed(1)} kt`;
         rwy06Headwind.className = 'component-value headwind';
     } else {
         rwy06HeadwindLabel.textContent = 'Tailwind';
-        rwy06Headwind.textContent = `${Math.round(Math.abs(rwy06Components.headwind))} kt`;
+        rwy06Headwind.textContent = `${Math.abs(rwy06Components.headwind).toFixed(1)} kt`;
         rwy06Headwind.className = 'component-value tailwind';
     }
 
     document.getElementById('rwy06Crosswind').textContent =
-        `${Math.round(rwy06Components.crosswind)} kt`;
+        `${rwy06Components.crosswind.toFixed(1)} kt`;
     document.getElementById('rwy06CrosswindDir').textContent =
         `(${rwy06Components.crosswindDirection})`;
 }
