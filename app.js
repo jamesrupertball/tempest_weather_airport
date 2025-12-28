@@ -301,15 +301,15 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     // Display Runway 24 components
     const rwy24Headwind = document.getElementById('rwy24Headwind');
     const rwy24HeadwindLabel = document.getElementById('rwy24HeadwindLabel');
-    const headwind24 = Math.round(rwy24Components.headwind);
 
-    if (headwind24 >= 0) {
+    // Keep full precision until final display rounding
+    if (rwy24Components.headwind >= 0) {
         rwy24HeadwindLabel.textContent = 'Headwind';
-        rwy24Headwind.textContent = `${headwind24} kt`;
+        rwy24Headwind.textContent = `${Math.round(rwy24Components.headwind)} kt`;
         rwy24Headwind.className = 'component-value headwind';
     } else {
         rwy24HeadwindLabel.textContent = 'Tailwind';
-        rwy24Headwind.textContent = `${Math.abs(headwind24)} kt`;
+        rwy24Headwind.textContent = `${Math.round(Math.abs(rwy24Components.headwind))} kt`;
         rwy24Headwind.className = 'component-value tailwind';
     }
 
@@ -321,15 +321,15 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     // Display Runway 06 components
     const rwy06Headwind = document.getElementById('rwy06Headwind');
     const rwy06HeadwindLabel = document.getElementById('rwy06HeadwindLabel');
-    const headwind06 = Math.round(rwy06Components.headwind);
 
-    if (headwind06 >= 0) {
+    // Keep full precision until final display rounding
+    if (rwy06Components.headwind >= 0) {
         rwy06HeadwindLabel.textContent = 'Headwind';
-        rwy06Headwind.textContent = `${headwind06} kt`;
+        rwy06Headwind.textContent = `${Math.round(rwy06Components.headwind)} kt`;
         rwy06Headwind.className = 'component-value headwind';
     } else {
         rwy06HeadwindLabel.textContent = 'Tailwind';
-        rwy06Headwind.textContent = `${Math.abs(headwind06)} kt`;
+        rwy06Headwind.textContent = `${Math.round(Math.abs(rwy06Components.headwind))} kt`;
         rwy06Headwind.className = 'component-value tailwind';
     }
 
