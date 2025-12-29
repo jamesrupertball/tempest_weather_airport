@@ -36,6 +36,3 @@ window.config = {
         runway06: { heading: 60, name: '06' }
     }
 };
-
-// Also create a const reference for backwards compatibility
-const config = window.config;
