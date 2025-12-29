@@ -3,7 +3,9 @@
 .env.local
 
 # Configuration files with secrets
-config.js
+# NOTE: config.js is committed because Supabase anon key is safe to expose
+# Security is handled by Row Level Security (RLS) on Supabase side
+# config.js
 
 # Node.js
 node_modules/

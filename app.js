@@ -42,10 +42,15 @@ let forecastData = null;
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing app...');
     initializeApp();
+    console.log('Setting up view toggle...');
     setupViewToggle();
+    console.log('Setting up data source toggle...');
     setupDataSourceToggle();
+    console.log('Setting up forecast tabs...');
     setupForecastTabs();
+    console.log('Initialization complete');
 });
 
 function initializeApp() {
@@ -834,6 +839,18 @@ function setupViewToggle() {
     const windCardContainer = document.getElementById('windCardContainer');
     const runwayCardContainer = document.getElementById('runwayCardContainer');
     const weatherView = document.getElementById('weatherView');
+
+    // Verify all elements exist before setting up event listeners
+    if (!toggleWind || !toggleWeather || !windCardContainer || !runwayCardContainer || !weatherView) {
+        console.error('View toggle setup failed - missing elements:', {
+            toggleWind: !!toggleWind,
+            toggleWeather: !!toggleWeather,
+            windCardContainer: !!windCardContainer,
+            runwayCardContainer: !!runwayCardContainer,
+            weatherView: !!weatherView
+        });
+        return;
+    }
 
     toggleWind.addEventListener('click', () => {
         // Show wind containers, hide weather view
