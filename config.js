@@ -9,7 +9,9 @@
  * Add config.js to your .gitignore file.
  */
 
-const config = {
+// Configuration for 00MN Weather Dashboard
+// Explicitly assign to window to ensure global availability
+window.config = {
     supabase: {
         url: 'https://quplbkikhpcumjvzumkz.supabase.co',
         anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1cGxia2lraHBjdW1qdnp1bWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYxODE4ODgsImV4cCI6MjA4MTc1Nzg4OH0.bYGdwAey1q8SfKJXfcpNek-DmbNW0CZpRhCgfFK0_Kg'
@@ -34,3 +36,6 @@ const config = {
         runway06: { heading: 60, name: '06' }
     }
 };
+
+// Also create a const reference for backwards compatibility
+const config = window.config;
