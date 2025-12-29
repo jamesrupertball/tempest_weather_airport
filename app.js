@@ -11,6 +11,16 @@
 // This keeps sensitive credentials out of the main application code
 // See config.example.js for setup instructions
 
+// Verify config is loaded
+if (typeof window.config === 'undefined') {
+    console.error('FATAL ERROR: config.js did not load properly. Check that config.js exists and is accessible.');
+    alert('Configuration Error: config.js failed to load. Please check the browser console for details.');
+    throw new Error('config.js not loaded');
+}
+
+// Use window.config to ensure we're reading from global scope
+const config = window.config;
+
 // Extract configuration values
 const SUPABASE_URL = config.supabase.url;
 const SUPABASE_ANON_KEY = config.supabase.anonKey;

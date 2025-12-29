@@ -9,10 +9,25 @@
  * Add config.js to your .gitignore file.
  */
 
-const config = {
+// Configuration for 00MN Weather Dashboard
+// Explicitly assign to window to ensure global availability
+window.config = {
     supabase: {
         url: 'https://your-project-id.supabase.co',
         anonKey: 'your-anon-public-key-here'
+    },
+    nws: {
+        userAgent: '(00MN Weather Dashboard, your-email@example.com)',
+        location: {
+            lat: 46.30,  // Battle Lake Municipal Airport
+            lon: -95.80
+        },
+        // Grid coordinates obtained from points API
+        grid: {
+            office: 'FGF',
+            x: 132,
+            y: 29
+        }
     },
     refreshInterval: 60000, // 60 seconds
     fieldElevation: 1391, // Battle Lake Municipal Airport elevation in feet MSL
@@ -21,3 +36,6 @@ const config = {
         runway06: { heading: 60, name: '06' }
     }
 };
+
+// Also create a const reference for backwards compatibility
+const config = window.config;
