@@ -829,17 +829,17 @@ function resetCountdown() {
 function setupViewToggle() {
     const toggleWind = document.getElementById('toggleWind');
     const toggleWeather = document.getElementById('toggleWeather');
-    const windView = document.getElementById('windView');
+
+    // Get the flip-card containers instead of inner sections
+    const windCardContainer = document.getElementById('windCardContainer');
+    const runwayCardContainer = document.getElementById('runwayCardContainer');
     const weatherView = document.getElementById('weatherView');
 
-    // Get all wind-related sections
-    const windSections = document.querySelectorAll('.runway-section, .info-section');
-
     toggleWind.addEventListener('click', () => {
-        // Show wind view, hide weather view
-        windView.style.display = '';
+        // Show wind containers, hide weather view
+        windCardContainer.style.display = '';
+        runwayCardContainer.style.display = '';
         weatherView.style.display = 'none';
-        windSections.forEach(section => section.style.display = '');
 
         // Update button states
         toggleWind.classList.add('active');
@@ -847,10 +847,10 @@ function setupViewToggle() {
     });
 
     toggleWeather.addEventListener('click', () => {
-        // Show weather view, hide wind view
-        windView.style.display = 'none';
+        // Show weather view, hide wind containers
+        windCardContainer.style.display = 'none';
+        runwayCardContainer.style.display = 'none';
         weatherView.style.display = '';
-        windSections.forEach(section => section.style.display = 'none');
 
         // Update button states
         toggleWeather.classList.add('active');
