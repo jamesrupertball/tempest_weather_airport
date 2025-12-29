@@ -18,6 +18,14 @@ const RUNWAYS = config.runways;
 const REFRESH_INTERVAL = config.refreshInterval;
 const FIELD_ELEVATION = config.fieldElevation;
 
+// NWS API configuration
+const NWS_USER_AGENT = config.nws.userAgent;
+const NWS_LAT = config.nws.location.lat;
+const NWS_LON = config.nws.location.lon;
+const NWS_GRID_OFFICE = config.nws.grid.office;
+const NWS_GRID_X = config.nws.grid.x;
+const NWS_GRID_Y = config.nws.grid.y;
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -26,10 +34,18 @@ let supabaseClient;
 let refreshTimer;
 let countdownTimer;
 
+// NWS forecast state
+let currentMode = 'live'; // 'live' or 'forecast'
+let selectedForecastHours = 0; // 0, 3, 6, or 9
+let liveData = null;
+let forecastData = null;
+
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     setupViewToggle();
+    setupDataSourceToggle();
+    setupForecastTabs();
 });
 
 function initializeApp() {
@@ -49,6 +65,9 @@ function initializeApp() {
 
     // Fetch initial data
     fetchWeatherData();
+
+    // Fetch forecast data
+    fetchForecastData();
 
     // Set up auto-refresh
     startAutoRefresh();
@@ -86,6 +105,330 @@ async function fetchWeatherData() {
     } catch (error) {
         console.error('Error fetching weather data:', error);
         alert(`Error fetching weather data: ${error.message}`);
+    }
+}
+
+async function fetchForecastData() {
+    console.log('Fetching NWS forecast data...');
+
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) loadingIndicator.classList.add('active');
+
+    try {
+        // Fetch hourly forecast from NWS
+        const forecastUrl = `https://api.weather.gov/gridpoints/${NWS_GRID_OFFICE}/${NWS_GRID_X},${NWS_GRID_Y}/forecast/hourly`;
+
+        const response = await fetch(forecastUrl, {
+            headers: {
+                'User-Agent': NWS_USER_AGENT
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const periods = data.properties.periods;
+
+        // Store forecast data in a format we can use
+        forecastData = {
+            periods: periods.map(period => ({
+                timestamp: new Date(period.startTime),
+                windSpeed: period.windSpeed,
+                windDirection: period.windDirection,
+                temperature: period.temperature,
+                relativeHumidity: period.relativeHumidity?.value || 0,
+                dewpoint: period.dewpoint?.value || 0,
+                shortForecast: period.shortForecast
+            }))
+        };
+
+        console.log('NWS forecast data fetched:', forecastData.periods.length, 'periods');
+
+        // Update forecast time labels
+        updateForecastTimeLabels();
+
+    } catch (error) {
+        console.error('Error fetching NWS forecast data:', error);
+        // Don't alert for forecast errors - just log them
+    } finally {
+        if (loadingIndicator) loadingIndicator.classList.remove('active');
+    }
+}
+
+// ============================================================================
+// DATA SOURCE TOGGLE
+// ============================================================================
+
+function setupDataSourceToggle() {
+    const toggleLive = document.getElementById('toggleLive');
+    const toggleForecast = document.getElementById('toggleForecast');
+    const toggleLiveWeather = document.getElementById('toggleLiveWeather');
+    const toggleForecastWeather = document.getElementById('toggleForecastWeather');
+
+    if (toggleLive) {
+        toggleLive.addEventListener('click', () => setMode('live'));
+    }
+
+    if (toggleForecast) {
+        toggleForecast.addEventListener('click', () => setMode('forecast'));
+    }
+
+    if (toggleLiveWeather) {
+        toggleLiveWeather.addEventListener('click', () => setMode('live'));
+    }
+
+    if (toggleForecastWeather) {
+        toggleForecastWeather.addEventListener('click', () => setMode('forecast'));
+    }
+}
+
+function setMode(mode) {
+    currentMode = mode;
+
+    // Update button states for both wind and weather sections
+    const toggleLive = document.getElementById('toggleLive');
+    const toggleForecast = document.getElementById('toggleForecast');
+    const toggleLiveWeather = document.getElementById('toggleLiveWeather');
+    const toggleForecastWeather = document.getElementById('toggleForecastWeather');
+
+    if (toggleLive) toggleLive.classList.toggle('active', mode === 'live');
+    if (toggleForecast) toggleForecast.classList.toggle('active', mode === 'forecast');
+    if (toggleLiveWeather) toggleLiveWeather.classList.toggle('active', mode === 'live');
+    if (toggleForecastWeather) toggleForecastWeather.classList.toggle('active', mode === 'forecast');
+
+    // Update indicators for both sections
+    const indicator = document.getElementById('dataSourceIndicator');
+    const indicatorWeather = document.getElementById('dataSourceIndicatorWeather');
+
+    [indicator, indicatorWeather].forEach(ind => {
+        if (ind) {
+            if (mode === 'live') {
+                ind.textContent = 'Live';
+                ind.classList.remove('forecast');
+            } else {
+                ind.textContent = 'Forecast';
+                ind.classList.add('forecast');
+            }
+        }
+    });
+
+    // Show/hide forecast selectors for both sections
+    const forecastSelector = document.getElementById('forecastSelector');
+    const forecastTimeDisplay = document.getElementById('forecastTimeDisplay');
+    const forecastSelectorWeather = document.getElementById('forecastSelectorWeather');
+    const forecastTimeDisplayWeather = document.getElementById('forecastTimeDisplayWeather');
+
+    if (forecastSelector) forecastSelector.classList.toggle('active', mode === 'forecast');
+    if (forecastTimeDisplay) forecastTimeDisplay.classList.toggle('active', mode === 'forecast');
+    if (forecastSelectorWeather) forecastSelectorWeather.classList.toggle('active', mode === 'forecast');
+    if (forecastTimeDisplayWeather) forecastTimeDisplayWeather.classList.toggle('active', mode === 'forecast');
+
+    // Update display
+    updateWindDisplay();
+}
+
+function setupForecastTabs() {
+    const tabs = document.querySelectorAll('.forecast-tab');
+    const tabsWeather = document.querySelectorAll('.forecast-tab-weather');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const hours = parseInt(tab.dataset.hours);
+            selectForecastTime(hours);
+        });
+    });
+
+    tabsWeather.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const hours = parseInt(tab.dataset.hours);
+            selectForecastTime(hours);
+        });
+    });
+}
+
+function selectForecastTime(hours) {
+    selectedForecastHours = hours;
+
+    // Update tab states for both sections
+    const tabs = document.querySelectorAll('.forecast-tab');
+    const tabsWeather = document.querySelectorAll('.forecast-tab-weather');
+
+    tabs.forEach(tab => {
+        const tabHours = parseInt(tab.dataset.hours);
+        tab.classList.toggle('active', tabHours === hours);
+    });
+
+    tabsWeather.forEach(tab => {
+        const tabHours = parseInt(tab.dataset.hours);
+        tab.classList.toggle('active', tabHours === hours);
+    });
+
+    // Update display
+    updateWindDisplay();
+}
+
+function updateForecastTimeLabels() {
+    if (!forecastData || !forecastData.periods) return;
+
+    const now = new Date();
+
+    // Find forecast indices for 0, 3, 6, 9 hours from now
+    [0, 3, 6, 9].forEach(hours => {
+        const targetTime = new Date(now.getTime() + hours * 3600000);
+        const index = findClosestForecastIndex(targetTime);
+
+        if (index !== -1) {
+            const forecastTime = forecastData.periods[index].timestamp;
+            const timeStr = forecastTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            // Update both wind and weather section labels
+            const label = document.getElementById(`time${hours}`);
+            const labelWeather = document.getElementById(`timeWeather${hours}`);
+
+            if (label) label.textContent = timeStr;
+            if (labelWeather) labelWeather.textContent = timeStr;
+        }
+    });
+}
+
+function findClosestForecastIndex(targetTime) {
+    if (!forecastData || !forecastData.periods) return -1;
+
+    let closestIndex = 0;
+    let smallestDiff = Math.abs(forecastData.periods[0].timestamp - targetTime);
+
+    for (let i = 1; i < forecastData.periods.length; i++) {
+        const diff = Math.abs(forecastData.periods[i].timestamp - targetTime);
+        if (diff < smallestDiff) {
+            smallestDiff = diff;
+            closestIndex = i;
+        }
+    }
+
+    return closestIndex;
+}
+
+function updateWindDisplay() {
+    if (currentMode === 'live') {
+        // Use live Tempest data - fetchWeatherData already handles this
+        // Just re-fetch to ensure latest
+        fetchWeatherData();
+    } else {
+        // Use NWS forecast data
+        if (forecastData && forecastData.periods) {
+            const now = new Date();
+            const targetTime = new Date(now.getTime() + selectedForecastHours * 3600000);
+            const index = findClosestForecastIndex(targetTime);
+
+            if (index !== -1) {
+                const period = forecastData.periods[index];
+
+                // Parse NWS wind data
+                const windSpeedMph = parseNWSWindSpeed(period.windSpeed);
+                const windDirection = compassTodegrees(period.windDirection);
+
+                // NWS doesn't provide gust data in hourly forecast
+                // Just show sustained wind for both values
+                const windSpeedKt = mphToKnots(windSpeedMph);
+
+                const data = {
+                    wind_avg: windSpeedKt,
+                    wind_gust: windSpeedKt,  // Same as sustained since no gust data available
+                    wind_direction: windDirection,
+                    timestamp: period.timestamp
+                };
+
+                // Display forecast wind data
+                displayForecastWindData(data);
+
+                // Display forecast weather observations
+                displayForecastWeatherObservations(period);
+
+                // Update forecast time display for both sections
+                const forecastTimeStr = data.timestamp.toLocaleString('en-US', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                const timeDisplay = document.getElementById('selectedForecastTime');
+                const timeDisplayWeather = document.getElementById('selectedForecastTimeWeather');
+
+                if (timeDisplay) timeDisplay.textContent = forecastTimeStr;
+                if (timeDisplayWeather) timeDisplayWeather.textContent = forecastTimeStr;
+            }
+        }
+    }
+}
+
+function displayForecastWindData(observation) {
+    // Extract wind data (already converted to knots from NWS mph)
+    const windSpeedKt = observation.wind_avg;
+    const windGustKt = observation.wind_gust;
+    const windDirection = observation.wind_direction;
+    const timestamp = observation.timestamp;
+
+    // Update wind display
+    document.getElementById('windDirection').textContent = `${Math.round(windDirection)}°`;
+    document.getElementById('windSpeed').textContent = `${Math.round(windSpeedKt)} kt`;
+    document.getElementById('windGust').textContent = `${Math.round(windGustKt)} kt`;
+
+    // Update timestamp
+    updateTimestamp(timestamp);
+
+    // Rotate wind arrow
+    rotateWindArrow(windDirection);
+
+    // Calculate and display runway components
+    calculateAndDisplayRunwayComponents(windDirection, windSpeedKt);
+}
+
+function displayForecastWeatherObservations(period) {
+    // Extract weather data from NWS forecast
+    const tempF = period.temperature;  // Already in Fahrenheit
+    const humidity = period.relativeHumidity;
+
+    // Update weather observation displays
+    document.getElementById('temperature').textContent = `${Math.round(tempF)}°F`;
+    document.getElementById('humidity').textContent = `${Math.round(humidity)}%`;
+
+    // Note: NWS hourly forecast doesn't include pressure data
+    // Pressure will only update in live mode
+    // We could show "N/A" or leave the last live value, keeping last live value for now
+
+    // Calculate and display density altitude using forecast temp
+    // We'll use the last known pressure value for this calculation
+    const pressureElement = document.getElementById('pressure');
+    const currentPressureText = pressureElement.textContent;
+
+    // Parse current pressure (e.g., "29.92 inHg")
+    const pressureMatch = currentPressureText.match(/([\d.]+)/);
+    if (pressureMatch) {
+        const pressureInHg = parseFloat(pressureMatch[1]);
+        const densityAlt = calculateDensityAltitude(FIELD_ELEVATION, tempF, pressureInHg);
+        const densityAltDelta = densityAlt - FIELD_ELEVATION;
+
+        document.getElementById('densityAltitude').textContent = `${Math.round(densityAlt).toLocaleString()} ft`;
+
+        // Display delta with color coding
+        const deltaElement = document.getElementById('densityAltitudeDelta');
+        if (densityAltDelta > 0) {
+            deltaElement.textContent = `+${Math.round(densityAltDelta).toLocaleString()} ft`;
+            deltaElement.className = 'delta-value negative';
+        } else if (densityAltDelta < 0) {
+            deltaElement.textContent = `${Math.round(densityAltDelta).toLocaleString()} ft`;
+            deltaElement.className = 'delta-value positive';
+        } else {
+            deltaElement.textContent = `${Math.round(densityAltDelta)} ft`;
+            deltaElement.className = 'delta-value neutral';
+        }
     }
 }
 
@@ -145,6 +488,65 @@ function calculateWindComponents(windDirection, windSpeed, runwayHeading) {
         crosswind: crosswindComponent,    // Always positive (magnitude)
         crosswindDirection: crosswindDirection  // 'L' or 'R'
     };
+}
+
+/**
+ * Parse NWS wind speed string to numeric mph value
+ * NWS formats: "25 mph" or "5 to 10 mph"
+ * For range, we take the higher value (conservative for flight planning)
+ */
+function parseNWSWindSpeed(windSpeedStr) {
+    if (!windSpeedStr) return 0;
+
+    // Match pattern like "5 to 10 mph" - take the higher value
+    const rangeMatch = windSpeedStr.match(/(\d+)\s+to\s+(\d+)/);
+    if (rangeMatch) {
+        return parseInt(rangeMatch[2]);
+    }
+
+    // Match simple pattern like "25 mph"
+    const simpleMatch = windSpeedStr.match(/(\d+)/);
+    if (simpleMatch) {
+        return parseInt(simpleMatch[1]);
+    }
+
+    return 0;
+}
+
+/**
+ * Convert NWS compass direction to degrees
+ * NWS uses: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW
+ */
+function compassTodegrees(direction) {
+    const compassPoints = {
+        'N': 0,
+        'NNE': 22.5,
+        'NE': 45,
+        'ENE': 67.5,
+        'E': 90,
+        'ESE': 112.5,
+        'SE': 135,
+        'SSE': 157.5,
+        'S': 180,
+        'SSW': 202.5,
+        'SW': 225,
+        'WSW': 247.5,
+        'W': 270,
+        'WNW': 292.5,
+        'NW': 315,
+        'NNW': 337.5
+    };
+
+    return compassPoints[direction] || 0;
+}
+
+/**
+ * Convert miles per hour to knots
+ * NWS reports in mph, pilots use knots
+ * 1 mph = 0.868976 knots
+ */
+function mphToKnots(mph) {
+    return mph * 0.868976;
 }
 
 /**

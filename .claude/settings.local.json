@@ -5,7 +5,9 @@
       "Bash(git config:*)",
       "Bash(python:*)",
       "Bash(del get_schema.js get_detailed_schema.js get_openapi_schema.js get_tables.js check_schema.js check_devices.py check_schema.py setup_github.bat)",
-      "Bash(supabase secrets set:*)"
+      "Bash(supabase secrets set:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

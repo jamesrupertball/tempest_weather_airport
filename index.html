@@ -44,11 +44,66 @@
             <button id="toggleWeather" class="toggle-btn">Weather Obs</button>
         </div>
 
-        <!-- Wind Display Section -->
-        <section id="windView" class="wind-section view-content">
-            <h2>Current Wind</h2>
+        <!-- Wind Display Section (Flippable Card) -->
+        <div class="flip-card-container" id="windCardContainer">
+            <div class="flip-card">
+                <!-- FRONT: Wind Display -->
+                <div class="flip-card-front">
+                    <section id="windView" class="wind-section view-content">
+                        <div class="section-header">
+                            <h2>Wind</h2>
+                            <span id="dataSourceIndicator" class="data-source-indicator">Live</span>
+                        </div>
 
-            <!-- Compass Rose with Wind Arrow -->
+                        <!-- Info Button -->
+                        <button class="card-info-btn" onclick="toggleFlip('windCardContainer')" aria-label="Show data source information">ⓘ</button>
+
+                        <!-- Data Source Toggle -->
+                        <div class="data-source-toggle">
+                            <button id="toggleLive" class="data-source-btn active">
+                                Live
+                                <span class="data-source-badge">Tempest Station</span>
+                            </button>
+                            <button id="toggleForecast" class="data-source-btn">
+                                Forecast
+                                <span class="data-source-badge">NWS Forecast</span>
+                            </button>
+                        </div>
+
+                        <!-- Forecast Time Selector -->
+                        <div id="forecastSelector" class="forecast-selector">
+                            <h4>Select Forecast Time</h4>
+                            <div class="forecast-tabs">
+                                <button class="forecast-tab active" data-hours="0">
+                                    Now
+                                    <span class="time-label" id="time0">--</span>
+                                </button>
+                                <button class="forecast-tab" data-hours="3">
+                                    +3h
+                                    <span class="time-label" id="time3">--</span>
+                                </button>
+                                <button class="forecast-tab" data-hours="6">
+                                    +6h
+                                    <span class="time-label" id="time6">--</span>
+                                </button>
+                                <button class="forecast-tab" data-hours="9">
+                                    +9h
+                                    <span class="time-label" id="time9">--</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Forecast Time Display -->
+                        <div id="forecastTimeDisplay" class="forecast-time-display">
+                            Showing forecast for: <strong id="selectedForecastTime">--</strong>
+                        </div>
+
+                        <!-- Loading Indicator -->
+                        <div id="loadingIndicator" class="loading-indicator">
+                            Loading forecast data...
+                        </div>
+
+                        <!-- Compass Rose with Wind Arrow -->
             <div class="compass-container">
                 <div class="compass-rose">
                     <!-- Cardinal directions -->
@@ -96,10 +151,39 @@
                 </div>
             </div>
         </section>
+                </div>
 
-        <!-- Runway Wind Components -->
+                <!-- BACK: Data Source Information -->
+                <div class="flip-card-back">
+                    <section class="info-card">
+                        <h3>Data Source Information</h3>
+
+                        <!-- Close/Back Button -->
+                        <button class="card-info-btn" onclick="toggleFlip('windCardContainer')" aria-label="Back to wind display">✕</button>
+
+                        <ul class="info-list">
+                            <li><strong>Live:</strong> Current observations from your Tempest weather station</li>
+                            <li><strong>Forecast:</strong> Hourly forecast from National Weather Service (updated hourly)</li>
+                            <li><strong>Forecast Times:</strong> Select +3h, +6h, or +9h to see predicted conditions</li>
+                            <li>Use forecast mode for flight planning and weather trend awareness</li>
+                            <li>Live data refreshes every 60 seconds from your station</li>
+                            <li>Runway components are calculated from wind direction and runway heading</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- Runway Wind Components (Flippable Card) -->
+        <div class="flip-card-container" id="runwayCardContainer">
+            <div class="flip-card">
+                <!-- FRONT: Runway Components -->
+                <div class="flip-card-front">
         <section class="runway-section view-content">
             <h2>Runway Wind Components</h2>
+
+            <!-- Info Button -->
+            <button class="card-info-btn" onclick="toggleFlip('runwayCardContainer')" aria-label="Show wind component guide">ⓘ</button>
 
             <!-- Runway 06/24 -->
             <div class="runway-card">
@@ -146,21 +230,75 @@
                 </div>
             </div>
         </section>
+                </div>
 
-        <!-- Legend/Info -->
-        <section class="info-section view-content">
-            <h3>Wind Component Guide</h3>
-            <ul class="info-list">
-                <li><strong>Headwind/Tailwind:</strong> Wind from straight ahead (green) or behind (red)</li>
-                <li><strong>Crosswind:</strong> Wind from the side - marked with L (left) or R (right)</li>
-                <li><strong>Wind Arrow:</strong> Points to where the wind is going</li>
-                <li>Wind speeds are shown in knots (kt)</li>
-            </ul>
-        </section>
+                <!-- BACK: Wind Component Guide -->
+                <div class="flip-card-back">
+                    <section class="info-card">
+                        <h3>Wind Component Guide</h3>
+
+                        <!-- Close/Back Button -->
+                        <button class="card-info-btn" onclick="toggleFlip('runwayCardContainer')" aria-label="Back to runway components">✕</button>
+
+                        <ul class="info-list">
+                            <li><strong>Headwind/Tailwind:</strong> Wind from straight ahead (green) or behind (red)</li>
+                            <li><strong>Crosswind:</strong> Wind from the side - marked with L (left) or R (right)</li>
+                            <li><strong>Wind Arrow:</strong> Points to where the wind is going</li>
+                            <li>Wind speeds are shown in knots (kt)</li>
+                            <li>The compass shows runway 06/24 orientation</li>
+                            <li>Cardinal directions (N, E, S, W) help orient wind direction</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </div>
 
         <!-- Weather Observations Section -->
         <section id="weatherView" class="weather-section view-content" style="display: none;">
-            <h2>Weather Observations</h2>
+            <div class="section-header">
+                <h2>Weather Observations</h2>
+                <span id="dataSourceIndicatorWeather" class="data-source-indicator">Live</span>
+            </div>
+
+            <!-- Data Source Toggle (shared with wind section) -->
+            <div class="data-source-toggle">
+                <button id="toggleLiveWeather" class="data-source-btn active">
+                    Live
+                    <span class="data-source-badge">Tempest Station</span>
+                </button>
+                <button id="toggleForecastWeather" class="data-source-btn">
+                    Forecast
+                    <span class="data-source-badge">NWS Forecast</span>
+                </button>
+            </div>
+
+            <!-- Forecast Time Selector -->
+            <div id="forecastSelectorWeather" class="forecast-selector">
+                <h4>Select Forecast Time</h4>
+                <div class="forecast-tabs">
+                    <button class="forecast-tab-weather active" data-hours="0">
+                        Now
+                        <span class="time-label" id="timeWeather0">--</span>
+                    </button>
+                    <button class="forecast-tab-weather" data-hours="3">
+                        +3h
+                        <span class="time-label" id="timeWeather3">--</span>
+                    </button>
+                    <button class="forecast-tab-weather" data-hours="6">
+                        +6h
+                        <span class="time-label" id="timeWeather6">--</span>
+                    </button>
+                    <button class="forecast-tab-weather" data-hours="9">
+                        +9h
+                        <span class="time-label" id="timeWeather9">--</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Forecast Time Display -->
+            <div id="forecastTimeDisplayWeather" class="forecast-time-display">
+                Showing forecast for: <strong id="selectedForecastTimeWeather">--</strong>
+            </div>
 
             <!-- Temperature -->
             <div class="weather-card">
@@ -235,6 +373,14 @@
     <script src="config.js"></script>
 
     <!-- Our application script -->
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
+
+    <!-- Flip card function -->
+    <script>
+        function toggleFlip(containerId) {
+            const container = document.getElementById(containerId);
+            container.classList.toggle('flipped');
+        }
+    </script>
 </body>
 </html>
