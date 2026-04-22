@@ -3,384 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>00MN Weather - Pilot Dashboard</title>
+    <title>00MN Weather · Pilot Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <h1>00MN Weather</h1>
-        <p class="subtitle">Battle Lake Municipal Airport - Battle Lake, MN</p>
-        <nav class="header-nav">
-            <a href="metar.html" class="nav-link-btn">View nearby METARs</a>
-        </nav>
-    </header>
 
-    <!-- Main Container -->
-    <main>
-        <!-- Last Updated -->
-        <div class="last-updated">
-            <div class="timestamp-container">
-                <div class="timestamp-row">
-                    <span class="timestamp-label">Zulu Time:</span>
-                    <span id="timestampZulu" class="timestamp-value">--</span>
-                </div>
-                <div class="timestamp-row">
-                    <span class="timestamp-label">Local Time:</span>
-                    <span id="timestampLocal" class="timestamp-value">--</span>
-                </div>
-                <div class="timestamp-relative">
-                    <span id="lastUpdated">--</span>
-                </div>
-                <div class="refresh-info">
-                    Auto-refresh: <span id="refreshCountdown">60</span>s
-                </div>
-            </div>
+<!-- Sticky header -->
+<header class="site-header">
+    <div class="header-top">
+        <div class="logo-mark">00</div>
+        <div class="station-info">
+            <div class="station-name">Battle Lake Municipal</div>
+            <div class="station-meta">00MN · 1,391 ft MSL</div>
         </div>
+        <span class="flight-cat-badge vfr">
+            <span class="cat-dot"></span>
+            <span>VFR</span>
+        </span>
+    </div>
 
-        <!-- View Toggle -->
-        <div class="view-toggle">
-            <button id="toggleWind" class="toggle-btn active">Wind Data</button>
-            <button id="toggleWeather" class="toggle-btn">Weather Obs</button>
-        </div>
+    <div class="header-status">
+        <span class="live-indicator">
+            <span class="live-dot"></span>
+            Live · <span id="lastUpdated">--</span>
+        </span>
+        <span class="header-times">
+            <span id="timestampZulu" class="mono">--</span>
+            · <span id="timestampLocal" class="mono">--</span>
+        </span>
+    </div>
 
-        <!-- Wind Display Section (Flippable Card) -->
-        <div class="flip-card-container" id="windCardContainer">
-            <div class="flip-card">
-                <!-- FRONT: Wind Display -->
-                <div class="flip-card-front">
-                    <section id="windView" class="wind-section view-content">
-                        <div class="section-header">
-                            <h2>Wind</h2>
-                            <span id="dataSourceIndicator" class="data-source-indicator">Live</span>
-                        </div>
+    <div class="section-switcher">
+        <button id="toggleWind" class="section-tab active">Wind</button>
+        <button id="toggleWeather" class="section-tab">Weather</button>
+    </div>
+</header>
 
-                        <!-- Info Button -->
-                        <button class="card-info-btn" onclick="toggleFlip('windCardContainer')" aria-label="Show data source information">ⓘ</button>
+<main>
+    <!-- Source tabs -->
+    <div class="source-tabs">
+        <button id="toggleLive" class="source-tab active">
+            Live <span class="source-badge">Tempest</span>
+        </button>
+        <button id="toggleForecast" class="source-tab">
+            Forecast <span class="source-badge">NWS</span>
+        </button>
+    </div>
 
-                        <!-- Data Source Toggle -->
-                        <div class="data-source-toggle">
-                            <button id="toggleLive" class="data-source-btn active">
-                                Live
-                                <span class="data-source-badge">Tempest Station</span>
-                            </button>
-                            <button id="toggleForecast" class="data-source-btn">
-                                Forecast
-                                <span class="data-source-badge">NWS Forecast</span>
-                            </button>
-                        </div>
+    <!-- Forecast hour selector (shown when forecast mode active) -->
+    <div id="forecastSelector" class="forecast-hours">
+        <button class="forecast-tab active" data-hours="0">Now<span class="time-label" id="time0"></span></button>
+        <button class="forecast-tab" data-hours="3">+3h<span class="time-label" id="time3"></span></button>
+        <button class="forecast-tab" data-hours="6">+6h<span class="time-label" id="time6"></span></button>
+        <button class="forecast-tab" data-hours="9">+9h<span class="time-label" id="time9"></span></button>
+    </div>
 
-                        <!-- Forecast Time Selector -->
-                        <div id="forecastSelector" class="forecast-selector">
-                            <h4>Select Forecast Time</h4>
-                            <div class="forecast-tabs">
-                                <button class="forecast-tab active" data-hours="0">
-                                    Now
-                                    <span class="time-label" id="time0">--</span>
-                                </button>
-                                <button class="forecast-tab" data-hours="3">
-                                    +3h
-                                    <span class="time-label" id="time3">--</span>
-                                </button>
-                                <button class="forecast-tab" data-hours="6">
-                                    +6h
-                                    <span class="time-label" id="time6">--</span>
-                                </button>
-                                <button class="forecast-tab" data-hours="9">
-                                    +9h
-                                    <span class="time-label" id="time9">--</span>
-                                </button>
-                            </div>
-                        </div>
+    <!-- ===== WIND SECTION ===== -->
+    <div id="windCardContainer">
 
-                        <!-- Forecast Time Display -->
-                        <div id="forecastTimeDisplay" class="forecast-time-display">
-                            Showing forecast for: <strong id="selectedForecastTime">--</strong>
-                        </div>
-
-                        <!-- Loading Indicator -->
-                        <div id="loadingIndicator" class="loading-indicator">
-                            Loading forecast data...
-                        </div>
-
-                        <!-- Compass Rose with Wind Arrow -->
-            <div class="compass-container">
-                <div class="compass-rose">
-                    <!-- Cardinal directions -->
-                    <span class="cardinal north">N</span>
-                    <span class="cardinal east">E</span>
-                    <span class="cardinal south">S</span>
-                    <span class="cardinal west">W</span>
-
-                    <!-- Compass rings -->
-                    <div class="compass-ring outer-ring"></div>
-                    <div class="compass-ring inner-ring"></div>
-
-                    <!-- Runway depiction (static, aligned with 240/060) -->
-                    <div class="runway-depiction">
-                        <div class="runway-centerline"></div>
-                        <div class="runway-marking runway-06">24</div> <!--Switch to match landing direction-->
-                        <div class="runway-marking runway-24">06</div>
-                    </div>
-
-                    <!-- Wind arrow (rotates to show FROM direction) -->
-                    <div id="windArrow" class="wind-arrow">
-                        <div class="arrow-shaft"></div>
-                        <div class="arrow-head"></div>
-                        <div class="arrow-tail"></div>
-                    </div>
-
-                    <!-- Center dot -->
-                    <div class="compass-center"></div>
-                </div>
-            </div>
-
-            <!-- Wind Data -->
-            <div class="wind-data">
-                <div class="wind-metric">
-                    <span class="label">Direction</span>
-                    <span id="windDirection" class="value large">---°</span>
-                </div>
-                <div class="wind-metric">
-                    <span class="label">Speed</span>
-                    <span id="windSpeed" class="value large">-- kt</span>
-                </div>
-                <div class="wind-metric">
-                    <span class="label">Gusts</span>
-                    <span id="windGust" class="value large">-- kt</span>
-                </div>
-            </div>
-        </section>
-                </div>
-
-                <!-- BACK: Data Source Information -->
-                <div class="flip-card-back">
-                    <section class="info-card">
-                        <h3>Data Source Information</h3>
-
-                        <!-- Close/Back Button -->
-                        <button class="card-info-btn" onclick="toggleFlip('windCardContainer')" aria-label="Back to wind display">✕</button>
-
-                        <ul class="info-list">
-                            <li><strong>Live:</strong> Current observations from your Tempest weather station</li>
-                            <li><strong>Forecast:</strong> Hourly forecast from National Weather Service (updated hourly)</li>
-                            <li><strong>Forecast Times:</strong> Select +3h, +6h, or +9h to see predicted conditions</li>
-                            <li>Use forecast mode for flight planning and weather trend awareness</li>
-                            <li>Live data refreshes every 60 seconds from your station</li>
-                            <li>Runway components are calculated from wind direction and runway heading</li>
-                        </ul>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- Runway Wind Components (Flippable Card) -->
-        <div class="flip-card-container" id="runwayCardContainer">
-            <div class="flip-card">
-                <!-- FRONT: Runway Components -->
-                <div class="flip-card-front">
-        <section class="runway-section view-content">
-            <h2>Runway Wind Components</h2>
-
-            <!-- Info Button -->
-            <button class="card-info-btn" onclick="toggleFlip('runwayCardContainer')" aria-label="Show wind component guide">ⓘ</button>
-
-            <!-- Runway 06/24 -->
-            <div class="runway-card">
-                <div class="runway-header">
-                    <h3>Runway 06/24</h3>
-                    <p class="runway-heading">Heading 060° / 240°</p>
-                </div>
-
-                <div class="runway-winds">
-                    <!-- Runway 06 -->
-                    <div class="runway-end">
-                        <span class="runway-number">06</span>
-                        <div class="wind-components">
-                            <div class="component">
-                                <span id="rwy06HeadwindLabel" class="component-label">Headwind</span>
-                                <span id="rwy06Headwind" class="component-value headwind">-- kt</span>
-                            </div>
-                            <div class="component">
-                                <span class="component-label">Crosswind</span>
-                                <span id="rwy06Crosswind" class="component-value crosswind">-- kt</span>
-                                <span id="rwy06CrosswindDir" class="crosswind-dir"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="runway-divider"></div>
-
-                    <!-- Runway 24 -->
-                    <div class="runway-end">
-                        <span class="runway-number">24</span>
-                        <div class="wind-components">
-                            <div class="component">
-                                <span id="rwy24HeadwindLabel" class="component-label">Headwind</span>
-                                <span id="rwy24Headwind" class="component-value headwind">-- kt</span>
-                            </div>
-                            <div class="component">
-                                <span class="component-label">Crosswind</span>
-                                <span id="rwy24Crosswind" class="component-value crosswind">-- kt</span>
-                                <span id="rwy24CrosswindDir" class="crosswind-dir"></span>
-                            </div>
-                        </div>
+        <!-- Compass hero card -->
+        <section class="compass-card navy" id="compassCard">
+            <div class="compass-card-header">
+                <div>
+                    <div class="compass-eyebrow">Wind · Rwy 06/24</div>
+                    <div class="compass-wind-label">
+                        <span class="mono" id="windDirHeader">---°</span>
+                        <span class="compass-sep">·</span>
+                        <span class="mono" id="windSummary">-- kt</span>
                     </div>
                 </div>
-            </div>
-        </section>
-                </div>
-
-                <!-- BACK: Wind Component Guide -->
-                <div class="flip-card-back">
-                    <section class="info-card">
-                        <h3>Wind Component Guide</h3>
-
-                        <!-- Close/Back Button -->
-                        <button class="card-info-btn" onclick="toggleFlip('runwayCardContainer')" aria-label="Back to runway components">✕</button>
-
-                        <ul class="info-list">
-                            <li><strong>Headwind/Tailwind:</strong> Wind from straight ahead (green) or behind (red)</li>
-                            <li><strong>Crosswind:</strong> Wind from the side - marked with L (left) or R (right)</li>
-                            <li><strong>Wind Arrow:</strong> Points to where the wind is going</li>
-                            <li>Wind speeds are shown in knots (kt)</li>
-                            <li>The compass shows runway 06/24 orientation</li>
-                            <li>Cardinal directions (N, E, S, W) help orient wind direction</li>
-                        </ul>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- Weather Observations Section -->
-        <section id="weatherView" class="weather-section view-content" style="display: none;">
-            <div class="section-header">
-                <h2>Weather Observations</h2>
-                <span id="dataSourceIndicatorWeather" class="data-source-indicator">Live</span>
-            </div>
-
-            <!-- Data Source Toggle (shared with wind section) -->
-            <div class="data-source-toggle">
-                <button id="toggleLiveWeather" class="data-source-btn active">
-                    Live
-                    <span class="data-source-badge">Tempest Station</span>
-                </button>
-                <button id="toggleForecastWeather" class="data-source-btn">
-                    Forecast
-                    <span class="data-source-badge">NWS Forecast</span>
-                </button>
-            </div>
-
-            <!-- Forecast Time Selector -->
-            <div id="forecastSelectorWeather" class="forecast-selector">
-                <h4>Select Forecast Time</h4>
-                <div class="forecast-tabs">
-                    <button class="forecast-tab-weather active" data-hours="0">
-                        Now
-                        <span class="time-label" id="timeWeather0">--</span>
-                    </button>
-                    <button class="forecast-tab-weather" data-hours="3">
-                        +3h
-                        <span class="time-label" id="timeWeather3">--</span>
-                    </button>
-                    <button class="forecast-tab-weather" data-hours="6">
-                        +6h
-                        <span class="time-label" id="timeWeather6">--</span>
-                    </button>
-                    <button class="forecast-tab-weather" data-hours="9">
-                        +9h
-                        <span class="time-label" id="timeWeather9">--</span>
-                    </button>
+                <div class="compass-controls">
+                    <button class="variant-btn active" data-variant="navy" title="Navy"></button>
+                    <button class="variant-btn" data-variant="light" title="Light"></button>
+                    <button class="variant-btn" data-variant="minimal" title="Minimal"></button>
+                    <button class="info-btn" id="windInfoBtn" aria-label="More info">i</button>
                 </div>
             </div>
 
-            <!-- Forecast Time Display -->
-            <div id="forecastTimeDisplayWeather" class="forecast-time-display">
-                Showing forecast for: <strong id="selectedForecastTimeWeather">--</strong>
+            <div class="compass-svg-wrap">
+                <svg id="compassSvg" viewBox="0 0 100 100" style="display:block;width:100%;max-width:360px;margin:0 auto">
+                    <rect id="compassBg" x="0" y="0" width="100" height="100" rx="2" fill="oklch(0.32 0.08 250)"/>
+                    <circle id="compassRing" cx="50" cy="50" r="48.5" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.2"/>
+                    <g id="compassTicks"></g>
+                    <!-- Runway bar: fixed at 60° for runway 06/24 -->
+                    <g transform="rotate(60 50 50)">
+                        <rect x="45" y="21" width="10" height="58" rx="0.5" fill="#0b0b0d"/>
+                        <rect x="46" y="21.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="48" y="21.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="50" y="21.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="52" y="21.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="46" y="74.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="48" y="74.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="50" y="74.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="52" y="74.5" width="1.2" height="4" fill="rgba(255,255,255,0.9)"/>
+                        <rect x="49.7" y="29.5" width="0.6" height="3.5" fill="rgba(255,255,255,0.85)"/>
+                        <rect x="49.7" y="36.0" width="0.6" height="3.5" fill="rgba(255,255,255,0.85)"/>
+                        <rect x="49.7" y="42.5" width="0.6" height="3.5" fill="rgba(255,255,255,0.85)"/>
+                        <rect x="49.7" y="49.0" width="0.6" height="3.5" fill="rgba(255,255,255,0.85)"/>
+                        <rect x="49.7" y="55.5" width="0.6" height="3.5" fill="rgba(255,255,255,0.85)"/>
+                        <rect x="49.7" y="62.0" width="0.6" height="3.5" fill="rgba(255,255,255,0.85)"/>
+                        <text x="50" y="30" fill="#ffd233" stroke="#000" stroke-width="0.25" paint-order="stroke"
+                              font-size="3.6" font-weight="800" font-family="'JetBrains Mono',monospace"
+                              text-anchor="middle" dominant-baseline="central"
+                              transform="rotate(180 50 30)">24</text>
+                        <text x="50" y="70" fill="#ffd233" stroke="#000" stroke-width="0.25" paint-order="stroke"
+                              font-size="3.6" font-weight="800" font-family="'JetBrains Mono',monospace"
+                              text-anchor="middle" dominant-baseline="central">06</text>
+                    </g>
+                    <!-- Wind needle -->
+                    <g id="windArrow" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="50" y1="50" x2="50" y2="74"/>
+                        <line x1="50" y1="50" x2="50" y2="17"/>
+                        <polyline points="47,22 50,17 53,22"/>
+                    </g>
+                    <circle id="compassHub" cx="50" cy="50" r="1.4" fill="oklch(0.72 0.17 55)"/>
+                    <circle id="compassHubCenter" cx="50" cy="50" r="0.5" fill="oklch(0.32 0.08 250)"/>
+                </svg>
             </div>
 
-            <!-- Temperature -->
-            <div class="weather-card">
-                <div class="weather-metric-large">
-                    <span class="metric-icon">🌡️</span>
-                    <div class="metric-data">
-                        <span class="label">Temperature</span>
-                        <span id="temperature" class="value huge">--°F</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pressure -->
-            <div class="weather-card">
-                <div class="weather-metric-large">
-                    <span class="metric-icon">🔽</span>
-                    <div class="metric-data">
-                        <span class="label">Barometric Pressure</span>
-                        <span id="pressure" class="value huge">-- inHg</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Relative Humidity -->
-            <div class="weather-card">
-                <div class="weather-metric-large">
-                    <span class="metric-icon">💧</span>
-                    <div class="metric-data">
-                        <span class="label">Relative Humidity</span>
-                        <span id="humidity" class="value huge">--%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Density Altitude -->
-            <div class="weather-card density-altitude">
-                <div class="weather-metric-large">
-                    <span class="metric-icon">✈️</span>
-                    <div class="metric-data">
-                        <span class="label">Density Altitude</span>
-                        <span id="densityAltitude" class="value huge">-- ft</span>
-                        <span id="densityAltitudeDelta" class="delta-value">--</span>
-                    </div>
-                </div>
-                <div class="info-note">
-                    Calculated for field elevation 1,391 ft MSL
+            <!-- Wind info sheet -->
+            <div id="windInfoSheet" class="info-sheet" hidden>
+                <div class="info-sheet-backdrop" id="windInfoBackdrop"></div>
+                <div class="info-sheet-panel">
+                    <div class="info-sheet-title">About this display</div>
+                    <ul class="info-sheet-list">
+                        <li><strong>Wind arrow</strong> points FROM the wind direction toward the runway it's blowing across.</li>
+                        <li><strong>Runway bar</strong> aligns with 06/24 on the magnetic compass.</li>
+                        <li><strong>Live data</strong> comes from the on-site Tempest station, refreshed every 60 seconds.</li>
+                        <li><strong>Forecast</strong> pulls from the National Weather Service hourly grid.</li>
+                    </ul>
+                    <button class="info-sheet-close" id="windInfoClose">Got it</button>
                 </div>
             </div>
         </section>
 
-        <!-- Safety Disclaimer -->
-        <section class="disclaimer view-content">
-            <h4>⚠️ Important Safety Notice</h4>
-            <p><strong>This is NOT official weather data.</strong> This information is provided for supplemental situational awareness only and should never be used as the sole source for flight planning or go/no-go decisions.</p>
+        <!-- Wind stats 3-up -->
+        <div class="wind-stats">
+            <div class="stat-card">
+                <div class="stat-label">Dir</div>
+                <div class="stat-value mono" id="windDirection">---°</div>
+                <div class="stat-sub" id="windDirName"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Wind</div>
+                <div class="stat-value mono accent-navy" id="windSpeed">--</div>
+                <div class="stat-unit">kt</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Gust</div>
+                <div class="stat-value mono" id="windGust">--</div>
+                <div class="stat-unit">kt</div>
+                <div class="stat-sub" id="windGustDelta"></div>
+            </div>
+        </div>
 
-            <p>All pilots are responsible for obtaining an official weather briefing from authorized sources (e.g., 1800wxbrief.com, Flight Service, ForeFlight, etc.) and making their own independent judgment regarding flight safety.</p>
-
-            <p>This data comes from a single weather station and may not accurately represent conditions at altitude, other locations on the field, or actual flight conditions. Weather equipment may malfunction or provide inaccurate readings.</p>
-
-            <p><strong>USE AT YOUR OWN RISK.</strong> This service is provided "as-is" without any warranties. The operator assumes no liability for decisions made using this information.</p>
+        <!-- Runway components -->
+        <section class="card" id="runwayCardContainer" style="position:relative">
+            <div class="card-header">
+                <h3 class="eyebrow">Runway components</h3>
+                <div class="card-header-right">
+                    <span class="mono dim-text">060° / 240°</span>
+                    <button class="info-btn dark" id="rwyInfoBtn" aria-label="More info">i</button>
+                </div>
+            </div>
+            <div class="rwy-row">
+                <div class="rwy-num mono">06</div>
+                <div class="rwy-comp">
+                    <div class="rwy-comp-label" id="rwy06HeadwindLabel">Headwind</div>
+                    <div class="rwy-comp-value" id="rwy06Headwind">--</div>
+                </div>
+                <div class="rwy-comp">
+                    <div class="rwy-comp-label">Xwind <span id="rwy06CrosswindDir"></span></div>
+                    <div class="rwy-comp-value" id="rwy06Crosswind">--</div>
+                </div>
+            </div>
+            <div class="rwy-row">
+                <div class="rwy-num mono">24</div>
+                <div class="rwy-comp">
+                    <div class="rwy-comp-label" id="rwy24HeadwindLabel">Headwind</div>
+                    <div class="rwy-comp-value" id="rwy24Headwind">--</div>
+                </div>
+                <div class="rwy-comp">
+                    <div class="rwy-comp-label">Xwind <span id="rwy24CrosswindDir"></span></div>
+                    <div class="rwy-comp-value" id="rwy24Crosswind">--</div>
+                </div>
+            </div>
+            <!-- Runway info sheet -->
+            <div id="rwyInfoSheet" class="info-sheet" hidden>
+                <div class="info-sheet-backdrop" id="rwyInfoBackdrop"></div>
+                <div class="info-sheet-panel">
+                    <div class="info-sheet-title">Wind components</div>
+                    <ul class="info-sheet-list">
+                        <li><strong>Headwind</strong> (green) — wind from ahead as you land.</li>
+                        <li><strong>Tailwind</strong> (red) — wind from behind. Many POHs limit tailwinds to 10 kt.</li>
+                        <li><strong>Crosswind</strong> — perpendicular component. Yellow ≥ 10 kt, red ≥ 15 kt. L/R from the pilot's view on landing.</li>
+                    </ul>
+                    <button class="info-sheet-close" id="rwyInfoClose">Got it</button>
+                </div>
+            </div>
         </section>
-    </main>
 
-    <!-- Footer -->
-    <footer>
-    </footer>
+    </div><!-- end #windCardContainer -->
 
-    <!-- Load Supabase client from CDN (UMD bundle) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <!-- ===== WEATHER SECTION ===== -->
+    <section id="weatherView" style="display:none">
+        <div class="weather-grid">
+            <div class="stat-card">
+                <div class="stat-label">Temperature</div>
+                <div class="stat-value mono" id="temperature">--</div>
+                <div class="stat-unit">°F</div>
+                <div class="stat-sub" id="tempSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Altimeter</div>
+                <div class="stat-value mono" id="pressure">--</div>
+                <div class="stat-unit">inHg</div>
+                <div class="stat-sub" id="pressureSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Humidity</div>
+                <div class="stat-value mono" id="humidity">--</div>
+                <div class="stat-unit">%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Density alt</div>
+                <div class="stat-value mono" id="densityAltitude">--</div>
+                <div class="stat-unit">ft</div>
+                <div class="stat-sub" id="densityAltitudeDelta"></div>
+            </div>
+        </div>
+        <div class="card obs-summary" id="obsSummary"></div>
+    </section>
 
-    <!-- Load configuration (must load before app.js) -->
-    <script src="config.js?v=3"></script>
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+        <strong>Not an official weather source.</strong> Situational awareness only — obtain an official briefing before flight.
+    </div>
+</main>
 
-    <!-- Our application script -->
-    <script src="app.js?v=7"></script>
+<!-- Hidden compatibility elements for app.js -->
+<span id="dataSourceIndicator" style="display:none"></span>
+<span id="dataSourceIndicatorWeather" style="display:none"></span>
+<span id="refreshCountdown" style="display:none"></span>
+<span id="selectedForecastTime" style="display:none"></span>
+<span id="selectedForecastTimeWeather" style="display:none"></span>
+<div id="loadingIndicator" style="display:none"></div>
+<div id="forecastTimeDisplay" style="display:none"></div>
+<div id="forecastTimeDisplayWeather" style="display:none"></div>
+<div id="forecastSelectorWeather" style="display:none">
+    <button class="forecast-tab-weather active" data-hours="0">Now<span id="timeWeather0"></span></button>
+    <button class="forecast-tab-weather" data-hours="3">+3h<span id="timeWeather3"></span></button>
+    <button class="forecast-tab-weather" data-hours="6">+6h<span id="timeWeather6"></span></button>
+    <button class="forecast-tab-weather" data-hours="9">+9h<span id="timeWeather9"></span></button>
+</div>
+<button id="toggleLiveWeather" style="display:none"></button>
+<button id="toggleForecastWeather" style="display:none"></button>
 
-    <!-- Flip card function -->
-    <script>
-        function toggleFlip(containerId) {
-            const container = document.getElementById(containerId);
-            container.classList.toggle('flipped');
-        }
-    </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script src="config.js?v=3"></script>
+<script src="app.js?v=8"></script>
+
 </body>
 </html>

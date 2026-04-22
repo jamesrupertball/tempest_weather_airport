@@ -63,6 +63,139 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Initialization complete');
 });
 
+// ============================================================================
+// COMPASS UTILITIES
+// ============================================================================
+
+function compassDirectionName(deg) {
+    const names = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    return names[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+}
+
+function initCompass() {
+    const ticksGroup = document.getElementById('compassTicks');
+    if (!ticksGroup) return;
+    const cx = 50, cy = 50, R = 50;
+    let html = '';
+    for (let d = 0; d < 360; d += 5) {
+        const isMajor = d % 10 === 0;
+        const isLabel = d % 30 === 0;
+        const a = (d - 90) * Math.PI / 180;
+        const rOuter = R - 2;
+        const rInner = isMajor ? R - 5.5 : R - 3.5;
+        const x1 = (cx + rOuter * Math.cos(a)).toFixed(2);
+        const y1 = (cy + rOuter * Math.sin(a)).toFixed(2);
+        const x2 = (cx + rInner * Math.cos(a)).toFixed(2);
+        const y2 = (cy + rInner * Math.sin(a)).toFixed(2);
+        html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(255,255,255,0.85)" stroke-width="${isMajor ? 0.45 : 0.22}" stroke-linecap="round"/>`;
+        if (isLabel) {
+            const rText = R - 9;
+            const lx = (cx + rText * Math.cos(a)).toFixed(2);
+            const ly = (cy + rText * Math.sin(a)).toFixed(2);
+            const label = d === 0 ? 'N' : d === 90 ? 'E' : d === 180 ? 'S' : d === 270 ? 'W' : String(d / 10).padStart(2, '0');
+            const isCard = label.length === 1;
+            html += `<text x="${lx}" y="${ly}" fill="rgba(255,255,255,0.92)" font-size="${isCard ? 6.5 : 3.6}" font-family="'Space Grotesk',system-ui,sans-serif" font-weight="${isCard ? 600 : 500}" text-anchor="middle" dominant-baseline="central" transform="rotate(${d} ${lx} ${ly})">${label}</text>`;
+        }
+    }
+    ticksGroup.innerHTML = html;
+    setupCompassVariants();
+    setupInfoSheets();
+}
+
+let currentCompassVariant = 'navy';
+
+const compassThemes = {
+    navy: {
+        cardBg: 'oklch(0.28 0.06 250)', compassBg: 'oklch(0.32 0.08 250)',
+        tickColor: 'rgba(255,255,255,0.85)', tickMinor: 'rgba(255,255,255,0.35)',
+        labelFill: 'rgba(255,255,255,0.92)', needle: '#ffffff',
+        ring: 'rgba(255,255,255,0.32)', hub: 'oklch(0.72 0.17 55)', hubCenter: 'oklch(0.32 0.08 250)',
+        cardClass: 'compass-card navy', headerColor: 'rgba(255,255,255,0.92)',
+    },
+    light: {
+        cardBg: '#fff', compassBg: 'oklch(0.99 0.003 240)',
+        tickColor: 'oklch(0.3 0.02 250)', tickMinor: 'oklch(0.75 0.01 250)',
+        labelFill: 'oklch(0.22 0.02 250)', needle: 'oklch(0.22 0.02 250)',
+        ring: 'oklch(0.6 0.015 250)', hub: 'oklch(0.68 0.18 35)', hubCenter: 'oklch(0.99 0.003 240)',
+        cardClass: 'compass-card light', headerColor: 'oklch(0.22 0.02 250)',
+    },
+    minimal: {
+        cardBg: 'transparent', compassBg: 'transparent',
+        tickColor: 'oklch(0.45 0.02 250)', tickMinor: 'oklch(0.82 0.01 250)',
+        labelFill: 'oklch(0.22 0.02 250)', needle: 'oklch(0.68 0.18 35)',
+        ring: 'oklch(0.7 0.01 250)', hub: 'oklch(0.68 0.18 35)', hubCenter: '#fff',
+        cardClass: 'compass-card minimal', headerColor: 'oklch(0.22 0.02 250)',
+    },
+};
+
+function applyCompassVariant(variant) {
+    const theme = compassThemes[variant] || compassThemes.navy;
+    currentCompassVariant = variant;
+
+    // Update card class
+    const card = document.getElementById('compassCard');
+    if (card) card.className = theme.cardClass;
+
+    // Update SVG elements
+    const bg = document.getElementById('compassBg');
+    if (bg) {
+        bg.setAttribute('fill', theme.compassBg);
+        bg.style.display = variant === 'minimal' ? 'none' : '';
+    }
+    const ring = document.getElementById('compassRing');
+    if (ring) ring.setAttribute('stroke', theme.ring);
+    const needle = document.getElementById('windArrow');
+    if (needle) needle.setAttribute('stroke', theme.needle);
+    const hub = document.getElementById('compassHub');
+    if (hub) hub.setAttribute('fill', theme.hub);
+    const hubCenter = document.getElementById('compassHubCenter');
+    if (hubCenter) hubCenter.setAttribute('fill', theme.hubCenter);
+
+    // Update tick colors
+    const ticksGroup = document.getElementById('compassTicks');
+    if (ticksGroup) {
+        ticksGroup.querySelectorAll('line').forEach((el, i) => {
+            // major ticks every 2nd (10deg steps), minor at 5deg steps
+            const deg = i * 5;
+            el.setAttribute('stroke', deg % 10 === 0 ? theme.tickColor : theme.tickMinor);
+        });
+        ticksGroup.querySelectorAll('text').forEach(el => {
+            el.setAttribute('fill', theme.labelFill);
+        });
+    }
+
+    // Update variant button active states
+    document.querySelectorAll('.variant-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.variant === variant);
+    });
+}
+
+function setupCompassVariants() {
+    document.querySelectorAll('.variant-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyCompassVariant(btn.dataset.variant));
+    });
+}
+
+function setupInfoSheets() {
+    function bindInfoSheet(btnId, sheetId, closeId, backdropId) {
+        const btn = document.getElementById(btnId);
+        const sheet = document.getElementById(sheetId);
+        const closeBtn = document.getElementById(closeId);
+        const backdrop = document.getElementById(backdropId);
+        if (btn && sheet) {
+            btn.addEventListener('click', () => sheet.removeAttribute('hidden'));
+        }
+        if (closeBtn && sheet) {
+            closeBtn.addEventListener('click', () => sheet.setAttribute('hidden', ''));
+        }
+        if (backdrop && sheet) {
+            backdrop.addEventListener('click', () => sheet.setAttribute('hidden', ''));
+        }
+    }
+    bindInfoSheet('windInfoBtn', 'windInfoSheet', 'windInfoClose', 'windInfoBackdrop');
+    bindInfoSheet('rwyInfoBtn', 'rwyInfoSheet', 'rwyInfoClose', 'rwyInfoBackdrop');
+}
+
 function initializeApp() {
     console.log('Initializing 00MN Weather Dashboard...');
 
@@ -77,6 +210,9 @@ function initializeApp() {
         alert('Configuration Error - Check Supabase credentials');
         return;
     }
+
+    // Initialize compass
+    initCompass();
 
     // Fetch initial data
     fetchWeatherData();
@@ -391,9 +527,19 @@ function displayForecastWindData(observation) {
     const timestamp = observation.timestamp;
 
     // Update wind display
-    document.getElementById('windDirection').textContent = `${Math.round(windDirection)}°`;
+    const windDirDegF = Math.round(windDirection);
+    document.getElementById('windDirection').textContent = `${String(windDirDegF).padStart(3, '0')}°`;
     document.getElementById('windSpeed').textContent = `${Math.round(windSpeedKt)} kt`;
     document.getElementById('windGust').textContent = `${Math.round(windGustKt)} kt`;
+
+    // Update compass card header
+    const windDirHeaderF = document.getElementById('windDirHeader');
+    const windSummaryF = document.getElementById('windSummary');
+    if (windDirHeaderF) windDirHeaderF.textContent = `${String(windDirDegF).padStart(3, '0')}°`;
+    if (windSummaryF) windSummaryF.textContent = `${Math.round(windSpeedKt)} kt`;
+
+    const windDirNameF = document.getElementById('windDirName');
+    if (windDirNameF) windDirNameF.textContent = compassDirectionName(windDirDegF);
 
     // Update timestamp
     updateTimestamp(timestamp);
@@ -643,9 +789,22 @@ function displayWeatherData(observation) {
     const windGustKt = msToKnots(windGustMs);
 
     // Update wind display
-    document.getElementById('windDirection').textContent = `${Math.round(windDirection)}°`;
+    const windDirDeg = Math.round(windDirection);
+    document.getElementById('windDirection').textContent = `${String(windDirDeg).padStart(3, '0')}°`;
     document.getElementById('windSpeed').textContent = `${Math.round(windSpeedKt)} kt`;
     document.getElementById('windGust').textContent = `${Math.round(windGustKt)} kt`;
+
+    // Update compass card header
+    const windDirHeader = document.getElementById('windDirHeader');
+    const windSummary = document.getElementById('windSummary');
+    if (windDirHeader) windDirHeader.textContent = `${String(windDirDeg).padStart(3, '0')}°`;
+    if (windSummary) windSummary.textContent = `${Math.round(windSpeedKt)}G${Math.round(windGustKt)} kt`;
+
+    // Direction name and gust delta
+    const windDirName = document.getElementById('windDirName');
+    if (windDirName) windDirName.textContent = compassDirectionName(windDirDeg);
+    const windGustDelta = document.getElementById('windGustDelta');
+    if (windGustDelta) windGustDelta.textContent = `Δ ${Math.round(windGustKt - windSpeedKt)} kt`;
 
     // Update last updated timestamp
     updateTimestamp(timestamp);
@@ -685,22 +844,30 @@ function displayWeatherObservations(observation) {
     const deltaElement = document.getElementById('densityAltitudeDelta');
     if (densityAltDelta > 0) {
         deltaElement.textContent = `+${Math.round(densityAltDelta).toLocaleString()} ft`;
-        deltaElement.className = 'delta-value negative';
+        deltaElement.className = 'stat-sub density-warn';
     } else if (densityAltDelta < 0) {
         deltaElement.textContent = `${Math.round(densityAltDelta).toLocaleString()} ft`;
-        deltaElement.className = 'delta-value positive';
+        deltaElement.className = 'stat-sub';
     } else {
-        deltaElement.textContent = `${Math.round(densityAltDelta)} ft`;
-        deltaElement.className = 'delta-value neutral';
+        deltaElement.textContent = `± 0 ft`;
+        deltaElement.className = 'stat-sub';
+    }
+
+    // Pressure sub-label
+    const pressureSub = document.getElementById('pressureSub');
+    if (pressureSub) pressureSub.textContent = pressureInHg > 29.92 ? 'High pressure' : 'Low pressure';
+
+    // Observation summary
+    const obsSummary = document.getElementById('obsSummary');
+    if (obsSummary) {
+        obsSummary.textContent = `Temperature ${Math.round(tempF)}°F, ${Math.round(humidity)}% relative humidity. Altimeter ${pressureInHg.toFixed(2)} inHg. Density altitude ${Math.round(densityAlt).toLocaleString()} ft — ${densityAltDelta > 0 ? `${Math.round(densityAltDelta).toLocaleString()} ft above` : `${Math.abs(Math.round(densityAltDelta)).toLocaleString()} ft below`} field elevation.`;
     }
 }
 
 function rotateWindArrow(windDirection) {
     const windArrow = document.getElementById('windArrow');
-    // The arrow points up by default (0°)
-    // Wind direction is where wind comes FROM, so add 180° to show where it's blowing TO
-    const arrowRotation = windDirection + 180;
-    windArrow.style.transform = `rotate(${arrowRotation}deg)`;
+    if (!windArrow) return;
+    windArrow.setAttribute('transform', `rotate(${windDirection + 180} 50 50)`);
 }
 
 function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
@@ -726,17 +893,18 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     if (rwy24Components.headwind >= 0) {
         rwy24HeadwindLabel.textContent = 'Headwind';
         rwy24Headwind.textContent = `${Math.floor(rwy24Components.headwind)} kt`;
-        rwy24Headwind.className = 'component-value headwind';
+        rwy24Headwind.className = 'rwy-comp-value headwind';
     } else {
         rwy24HeadwindLabel.textContent = 'Tailwind';
         rwy24Headwind.textContent = `${Math.floor(Math.abs(rwy24Components.headwind))} kt`;
-        rwy24Headwind.className = 'component-value tailwind';
+        rwy24Headwind.className = 'rwy-comp-value tailwind';
     }
 
-    document.getElementById('rwy24Crosswind').textContent =
-        `${Math.floor(rwy24Components.crosswind)} kt`;
-    document.getElementById('rwy24CrosswindDir').textContent =
-        `(${rwy24Components.crosswindDirection})`;
+    const cw24 = Math.floor(rwy24Components.crosswind);
+    const cw24El = document.getElementById('rwy24Crosswind');
+    cw24El.textContent = `${cw24} kt`;
+    cw24El.className = cw24 >= 15 ? 'rwy-comp-value xwind-danger' : cw24 >= 10 ? 'rwy-comp-value xwind-warn' : 'rwy-comp-value';
+    document.getElementById('rwy24CrosswindDir').textContent = rwy24Components.crosswindDirection;
 
     // Display Runway 06 components
     const rwy06Headwind = document.getElementById('rwy06Headwind');
@@ -746,17 +914,18 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     if (rwy06Components.headwind >= 0) {
         rwy06HeadwindLabel.textContent = 'Headwind';
         rwy06Headwind.textContent = `${Math.floor(rwy06Components.headwind)} kt`;
-        rwy06Headwind.className = 'component-value headwind';
+        rwy06Headwind.className = 'rwy-comp-value headwind';
     } else {
         rwy06HeadwindLabel.textContent = 'Tailwind';
         rwy06Headwind.textContent = `${Math.floor(Math.abs(rwy06Components.headwind))} kt`;
-        rwy06Headwind.className = 'component-value tailwind';
+        rwy06Headwind.className = 'rwy-comp-value tailwind';
     }
 
-    document.getElementById('rwy06Crosswind').textContent =
-        `${Math.floor(rwy06Components.crosswind)} kt`;
-    document.getElementById('rwy06CrosswindDir').textContent =
-        `(${rwy06Components.crosswindDirection})`;
+    const cw06 = Math.floor(rwy06Components.crosswind);
+    const cw06El = document.getElementById('rwy06Crosswind');
+    cw06El.textContent = `${cw06} kt`;
+    cw06El.className = cw06 >= 15 ? 'rwy-comp-value xwind-danger' : cw06 >= 10 ? 'rwy-comp-value xwind-warn' : 'rwy-comp-value';
+    document.getElementById('rwy06CrosswindDir').textContent = rwy06Components.crosswindDirection;
 }
 
 function updateTimestamp(timestamp) {
@@ -778,29 +947,25 @@ function updateTimestamp(timestamp) {
         return `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
     }
 
-    // Format Zulu time (UTC)
-    const zuluTime = formatDateTime(timestamp, true);
+    // Format Zulu time as "17:42Z"
+    const zuluH = String(timestamp.getUTCHours()).padStart(2, '0');
+    const zuluM = String(timestamp.getUTCMinutes()).padStart(2, '0');
+    document.getElementById('timestampZulu').textContent = `${zuluH}:${zuluM}Z`;
 
-    // Format local time
-    const localTime = formatDateTime(timestamp, false);
-
-    // Update Zulu and Local time displays
-    document.getElementById('timestampZulu').textContent = zuluTime;
-    document.getElementById('timestampLocal').textContent = localTime;
+    // Format local time as "12:42 PM"
+    const localTimeStr = timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    document.getElementById('timestampLocal').textContent = localTimeStr;
 
     // Update relative time display
-    let displayText;
+    let ageStr;
     if (diffSeconds < 60) {
-        displayText = `Updated: ${diffSeconds}s ago`;
+        ageStr = `${diffSeconds}s ago`;
     } else if (diffSeconds < 3600) {
-        const minutes = Math.floor(diffSeconds / 60);
-        displayText = `Updated: ${minutes}m ago`;
+        ageStr = `${Math.floor(diffSeconds / 60)}m ago`;
     } else {
-        const hours = Math.floor(diffSeconds / 3600);
-        displayText = `Updated: ${hours}h ago`;
+        ageStr = `${Math.floor(diffSeconds / 3600)}h ago`;
     }
-
-    document.getElementById('lastUpdated').textContent = displayText;
+    document.getElementById('lastUpdated').textContent = ageStr;
 }
 
 // ============================================================================
