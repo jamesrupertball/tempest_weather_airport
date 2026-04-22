@@ -610,15 +610,18 @@ function calculateDensityAltitude(fieldElevation, tempF, pressureInHg) {
     // Calculate pressure altitude
     const pressureAltitude = fieldElevation + ((29.92 - pressureInHg) * 1000);
 
+    // Convert temperature to Celsius
+    const tempC = (tempF - 32) / 1.8;
+
     // Calculate ISA temperature at pressure altitude
-    // ISA: 15°C (59°F) at sea level, decreases 2°C per 1000ft (3.5°F per 1000ft)
-    const isaTemp = 59 - (3.5 * (pressureAltitude / 1000));
+    // ISA: 15°C at sea level, decreases 2°C per 1000ft
+    const isaTemp = 15 - (2 * (pressureAltitude / 1000));
 
     // Temperature deviation from ISA
-    const tempDeviation = tempF - isaTemp;
+    const tempDeviation = tempC - isaTemp;
 
     // Density altitude calculation
-    // 120 ft per degree F deviation from ISA
+    // 120 ft per degree C deviation from ISA
     const densityAltitude = pressureAltitude + (120 * tempDeviation);
 
     return densityAltitude;
