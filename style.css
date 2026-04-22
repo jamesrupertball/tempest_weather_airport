@@ -236,6 +236,12 @@ main {
     margin: 0 auto;
 }
 
+#windCardContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 /* ---------- Source tabs (Live / Forecast) ---------- */
 .source-tabs {
     display: flex;
@@ -320,24 +326,10 @@ main {
 
 /* ---------- Compass card ---------- */
 .compass-card {
-    border-radius: 16px;
-    overflow: hidden;
-    transition: background 0.25s;
-}
-
-.compass-card.navy {
     background: oklch(0.28 0.06 250);
     box-shadow: 0 4px 24px rgba(10,15,40,0.22);
-}
-
-.compass-card.light {
-    background: #fff;
-    border: 1px solid oklch(0.92 0.005 250);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.compass-card.minimal {
-    background: transparent;
+    border-radius: 16px;
+    overflow: hidden;
 }
 
 .compass-card-header {
@@ -356,11 +348,6 @@ main {
     margin-bottom: 4px;
 }
 
-.compass-card.light .compass-eyebrow,
-.compass-card.minimal .compass-eyebrow {
-    color: oklch(0.5 0.015 250);
-}
-
 .compass-wind-label {
     font-family: 'JetBrains Mono', monospace;
     font-size: 18px;
@@ -371,39 +358,9 @@ main {
     gap: 4px;
 }
 
-.compass-card.light .compass-wind-label,
-.compass-card.minimal .compass-wind-label {
-    color: oklch(0.22 0.02 250);
-}
-
 .compass-wind-sep {
     opacity: 0.45;
     font-size: 14px;
-}
-
-.compass-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 2px;
-}
-
-.variant-btn {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: transform 0.12s, box-shadow 0.12s;
-    flex-shrink: 0;
-}
-
-.variant-btn.active {
-    box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px oklch(0.55 0.1 250);
-}
-
-.compass-card.light .variant-btn.active,
-.compass-card.minimal .variant-btn.active {
-    box-shadow: 0 0 0 2px oklch(0.28 0.06 250), 0 0 0 3.5px oklch(0.75 0.01 250);
 }
 
 /* Info button (italic "i") */
@@ -424,17 +381,6 @@ main {
 .info-btn:hover {
     background: rgba(255,255,255,0.12);
     border-color: rgba(255,255,255,0.6);
-}
-
-.compass-card.light .info-btn,
-.compass-card.minimal .info-btn {
-    border-color: oklch(0.82 0.01 250);
-    color: oklch(0.5 0.015 250);
-}
-
-.compass-card.light .info-btn:hover,
-.compass-card.minimal .info-btn:hover {
-    background: oklch(0.96 0.003 250);
 }
 
 /* Runway info btn (in card context) */
