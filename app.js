@@ -782,11 +782,6 @@ function displayWeatherObservations(observation) {
     const pressureSub = document.getElementById('pressureSub');
     if (pressureSub) pressureSub.textContent = pressureInHg > 29.92 ? 'High pressure' : 'Low pressure';
 
-    // Observation summary
-    const obsSummary = document.getElementById('obsSummary');
-    if (obsSummary) {
-        obsSummary.textContent = `Temperature ${Math.round(tempF)}°F, ${Math.round(humidity)}% relative humidity. Altimeter ${pressureInHg.toFixed(2)} inHg. Density altitude ${Math.round(densityAlt).toLocaleString()} ft — ${densityAltDelta > 0 ? `${Math.round(densityAltDelta).toLocaleString()} ft above` : `${Math.abs(Math.round(densityAltDelta)).toLocaleString()} ft below`} field elevation.`;
-    }
 }
 
 function rotateWindArrow(windDirection) {
