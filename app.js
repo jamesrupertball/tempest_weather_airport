@@ -823,7 +823,7 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     const cw24 = Math.floor(rwy24Components.crosswind);
     const cw24El = document.getElementById('rwy24Crosswind');
     cw24El.textContent = `${cw24} kt`;
-    cw24El.className = cw24 >= 15 ? 'rwy-comp-value xwind-danger' : cw24 >= 10 ? 'rwy-comp-value xwind-warn' : 'rwy-comp-value';
+    cw24El.className = cw24 >= 15 ? 'rwy-comp-value xwind-danger' : cw24 >= 10 ? 'rwy-comp-value xwind-warn' : 'rwy-comp-value xwind-ok';
     document.getElementById('rwy24CrosswindDir').textContent = rwy24Components.crosswindDirection;
 
     // Display Runway 06 components
@@ -844,7 +844,7 @@ function calculateAndDisplayRunwayComponents(windDirection, windSpeedKt) {
     const cw06 = Math.floor(rwy06Components.crosswind);
     const cw06El = document.getElementById('rwy06Crosswind');
     cw06El.textContent = `${cw06} kt`;
-    cw06El.className = cw06 >= 15 ? 'rwy-comp-value xwind-danger' : cw06 >= 10 ? 'rwy-comp-value xwind-warn' : 'rwy-comp-value';
+    cw06El.className = cw06 >= 15 ? 'rwy-comp-value xwind-danger' : cw06 >= 10 ? 'rwy-comp-value xwind-warn' : 'rwy-comp-value xwind-ok';
     document.getElementById('rwy06CrosswindDir').textContent = rwy06Components.crosswindDirection;
 }
 

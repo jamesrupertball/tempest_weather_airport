@@ -642,12 +642,16 @@ main {
     color: oklch(0.55 0.18 25);
 }
 
+.rwy-comp-value.xwind-ok {
+    color: oklch(0.5 0.14 150);
+}
+
 .rwy-comp-value.xwind-warn {
     color: oklch(0.65 0.16 55);
 }
 
 .rwy-comp-value.xwind-danger {
-    color: oklch(0.55 0.18 25);
+    color: oklch(0.55 0.2 15);
 }
 
 /* ---------- Weather grid ---------- */
