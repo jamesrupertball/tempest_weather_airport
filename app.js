@@ -660,6 +660,17 @@ function mbToInHg(millibars) {
 }
 
 /**
+ * Convert station pressure (mb) to altimeter setting (inHg).
+ * The Tempest stores absolute station pressure at elevation; the PA/DA
+ * formula requires sea-level-equivalent pressure (altimeter setting).
+ * Uses the FAA standard hypsometric correction.
+ */
+function stationPressureToAltimeterInHg(stationPressureMb, elevationFt) {
+    const stationPressureInHg = stationPressureMb * 0.02953;
+    return stationPressureInHg * Math.pow(1 + 6.8755856e-6 * elevationFt, 5.2558797);
+}
+
+/**
  * Calculate density altitude
  *
  * Density altitude is the altitude relative to standard atmospheric conditions
@@ -752,18 +763,8 @@ function displayWeatherObservations(observation) {
 
     // Convert to display units
     const tempF = celsiusToFahrenheit(tempC);
-    const pressureInHg = mbToInHg(pressureMb);
-
-    // DEBUG — open browser console (F12) to see raw values
-    const pressureAltitude = FIELD_ELEVATION + ((29.92 - pressureInHg) * 1000);
-    const tempCCalc = (tempF - 32) / 1.8;
-    const isaTemp = 15 - (2 * (pressureAltitude / 1000));
-    console.log('DA debug:', {
-        raw_air_temperature: tempC,
-        raw_pressure_mb: pressureMb,
-        tempF, tempCCalc, pressureInHg, pressureAltitude, isaTemp,
-        tempDeviation: tempCCalc - isaTemp
-    });
+    // Tempest stores station pressure; convert to altimeter setting for PA/DA formula
+    const pressureInHg = stationPressureToAltimeterInHg(pressureMb, FIELD_ELEVATION);
 
     // Update weather observation displays
     document.getElementById('temperature').textContent = `${Math.round(tempF)}°F`;
