@@ -754,6 +754,17 @@ function displayWeatherObservations(observation) {
     const tempF = celsiusToFahrenheit(tempC);
     const pressureInHg = mbToInHg(pressureMb);
 
+    // DEBUG — open browser console (F12) to see raw values
+    const pressureAltitude = FIELD_ELEVATION + ((29.92 - pressureInHg) * 1000);
+    const tempCCalc = (tempF - 32) / 1.8;
+    const isaTemp = 15 - (2 * (pressureAltitude / 1000));
+    console.log('DA debug:', {
+        raw_air_temperature: tempC,
+        raw_pressure_mb: pressureMb,
+        tempF, tempCCalc, pressureInHg, pressureAltitude, isaTemp,
+        tempDeviation: tempCCalc - isaTemp
+    });
+
     // Update weather observation displays
     document.getElementById('temperature').textContent = `${Math.round(tempF)}°F`;
     document.getElementById('pressure').textContent = `${pressureInHg.toFixed(2)} inHg`;
