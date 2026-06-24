@@ -31,8 +31,9 @@
     </div>
 
     <div class="section-switcher">
-        <button id="toggleWind" class="section-tab active">Wind</button>
+        <button id="toggleWind" class="section-tab active">Rwy Wind</button>
         <button id="toggleWeather" class="section-tab">Weather</button>
+        <button id="toggleWarnings" class="section-tab">Warnings</button>
     </div>
 </header>
 
@@ -218,6 +219,37 @@
                 <div class="stat-sub" id="densityAltitudeDelta"></div>
             </div>
         </div>
+    </section>
+
+    <!-- ===== WARNINGS SECTION ===== -->
+    <section id="warningsView" style="display:none">
+
+        <!-- Loading state -->
+        <div id="warningsLoading" class="warnings-state" style="display:none">
+            <div class="warnings-state-icon warnings-loading-icon">…</div>
+            <div class="warnings-state-title">Checking warnings</div>
+            <div class="warnings-state-sub">Fetching SIGMET &amp; G-AIRMET data</div>
+        </div>
+
+        <!-- All-clear state -->
+        <div id="warningsClear" class="warnings-state" style="display:none">
+            <div class="warnings-ok-icon">✓</div>
+            <div class="warnings-state-title">No active warnings</div>
+            <div class="warnings-state-sub">No SIGMETs or G-AIRMETs affecting this location</div>
+        </div>
+
+        <!-- Error state -->
+        <div id="warningsError" class="warnings-state" style="display:none">
+            <div class="warnings-state-title">Could not load warnings</div>
+            <div class="warnings-state-sub">Check connection and try again</div>
+        </div>
+
+        <!-- Warning cards injected by JS -->
+        <div id="warningsList"></div>
+
+        <!-- Last updated timestamp -->
+        <div id="warningsUpdated" class="warnings-updated"></div>
+
     </section>
 
     <!-- Disclaimer -->

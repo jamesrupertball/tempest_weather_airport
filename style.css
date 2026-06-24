@@ -205,10 +205,10 @@ button:focus-visible {
     font-size: 10px;
 }
 
-/* Section switcher (Wind / Weather) */
+/* Section switcher (Rwy Wind / Weather / Warnings) */
 .section-switcher {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 3px;
     background: oklch(0.95 0.005 250);
     border-radius: 9px;
@@ -710,4 +710,208 @@ main {
     main {
         padding: 18px 20px 48px;
     }
+}
+
+/* ---------- Warnings section ---------- */
+
+.warnings-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px 40px;
+    text-align: center;
+    gap: 6px;
+}
+
+.warnings-ok-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: oklch(0.9 0.1 150);
+    color: oklch(0.28 0.14 150);
+    font-size: 26px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.warnings-loading-icon {
+    font-size: 28px;
+    color: oklch(0.5 0.015 250);
+    margin-bottom: 4px;
+}
+
+.warnings-state-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: oklch(0.22 0.02 250);
+}
+
+.warnings-state-sub {
+    font-size: 12px;
+    color: oklch(0.5 0.015 250);
+    max-width: 260px;
+}
+
+/* Warning group label */
+.warning-group-header {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: oklch(0.5 0.015 250);
+    padding: 8px 2px 4px;
+}
+
+.warning-group-header:first-child {
+    padding-top: 0;
+}
+
+/* Warning list container */
+#warningsList {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Base warning card */
+.warning-card {
+    background: #fff;
+    border: 1px solid oklch(0.92 0.005 250);
+    border-left: 4px solid oklch(0.55 0.18 25);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 8px;
+}
+
+.warning-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Hazard color accents */
+.warning-card--conv  { border-left-color: oklch(0.55 0.20 25); }
+.warning-card--turb  { border-left-color: oklch(0.65 0.17 55); }
+.warning-card--ice   { border-left-color: oklch(0.50 0.12 250); }
+.warning-card--ifr   { border-left-color: oklch(0.50 0.10 295); }
+.warning-card--llws  { border-left-color: oklch(0.62 0.16 55); }
+.warning-card--sfc-wind { border-left-color: oklch(0.62 0.16 55); }
+.warning-card--mtn-obs { border-left-color: oklch(0.50 0.10 295); }
+.warning-card--fzlvl { border-left-color: oklch(0.48 0.12 220); }
+
+.warning-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+/* Product badge */
+.warning-badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.warning-badge--sigmet {
+    background: oklch(0.92 0.08 25);
+    color: oklch(0.32 0.16 25);
+}
+
+.warning-badge--tango {
+    background: oklch(0.94 0.08 55);
+    color: oklch(0.32 0.14 55);
+}
+
+.warning-badge--zulu {
+    background: oklch(0.90 0.08 250);
+    color: oklch(0.28 0.12 250);
+}
+
+.warning-badge--sierra {
+    background: oklch(0.91 0.07 295);
+    color: oklch(0.32 0.11 295);
+}
+
+.warning-valid {
+    font-size: 10.5px;
+    font-family: 'JetBrains Mono', monospace;
+    color: oklch(0.5 0.015 250);
+    text-align: right;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Summary row */
+.warning-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-bottom: 2px;
+}
+
+.warning-detail-item {
+    font-size: 12px;
+    color: oklch(0.4 0.02 250);
+    line-height: 1.5;
+}
+
+.warning-detail-item strong {
+    color: oklch(0.22 0.02 250);
+    font-weight: 600;
+}
+
+/* Expand/collapse toggle */
+.warning-raw-toggle {
+    font-size: 11px;
+    font-weight: 600;
+    color: oklch(0.45 0.07 250);
+    padding: 6px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.12s;
+}
+
+.warning-raw-toggle:hover {
+    color: oklch(0.28 0.06 250);
+}
+
+/* Raw text / details panel */
+.warning-raw {
+    margin-top: 8px;
+    background: oklch(0.975 0.003 250);
+    border: 1px solid oklch(0.92 0.005 250);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.warning-raw[hidden] {
+    display: none;
+}
+
+.warning-raw pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: oklch(0.35 0.02 250);
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.65;
+    margin: 0;
+}
+
+/* Updated timestamp */
+.warnings-updated {
+    font-size: 10.5px;
+    font-family: 'JetBrains Mono', monospace;
+    color: oklch(0.55 0.015 250);
+    text-align: center;
+    padding: 8px 0 0;
 }
