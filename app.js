@@ -1112,20 +1112,18 @@ function formatGairmetValidTime(isoStr) {
 }
 
 const HAZARD_LABELS = {
-    // SIGMET
+    // SIGMET hazards (uppercase)
     'CONVECTIVE': 'Convective',
     'TURB': 'Turbulence',
     'ICE': 'Icing',
     'IFR': 'IFR',
-    // G-AIRMET
-    'turb-hi': 'Turbulence Hi Alt',
-    'turb-lo': 'Turbulence Lo Alt',
-    'llws': 'Low-Level Wind Shear',
-    'sfc_wind': 'Strong Sfc Winds',
-    'ifr': 'IFR Conditions',
-    'mtn_obs': 'Mtn Obscuration',
-    'ice': 'Icing',
-    'fzlvl': 'Freezing Level',
+    // G-AIRMET hazards (uppercase, as returned by API)
+    'TURB-HI': 'Turbulence Hi Alt',
+    'TURB-LO': 'Turbulence Lo Alt',
+    'LLWS': 'Low-Level Wind Shear',
+    'SFC_WIND': 'Strong Sfc Winds',
+    'MT_OBSC': 'Mtn Obscuration',
+    'FZLVL': 'Freezing Level',
 };
 
 const SIGMET_CARD_CLASS = {
@@ -1136,14 +1134,14 @@ const SIGMET_CARD_CLASS = {
 };
 
 const GAIRMET_CARD_CLASS = {
-    'turb-hi': 'warning-card--turb',
-    'turb-lo': 'warning-card--turb',
-    'llws': 'warning-card--llws',
-    'sfc_wind': 'warning-card--sfc-wind',
-    'ifr': 'warning-card--ifr',
-    'mtn_obs': 'warning-card--mtn-obs',
-    'ice': 'warning-card--ice',
-    'fzlvl': 'warning-card--fzlvl',
+    'TURB-HI': 'warning-card--turb',
+    'TURB-LO': 'warning-card--turb',
+    'LLWS': 'warning-card--llws',
+    'SFC_WIND': 'warning-card--sfc-wind',
+    'IFR': 'warning-card--ifr',
+    'MT_OBSC': 'warning-card--mtn-obs',
+    'ICE': 'warning-card--ice',
+    'FZLVL': 'warning-card--fzlvl',
 };
 
 const GAIRMET_BADGE_CLASS = {
@@ -1171,7 +1169,7 @@ function buildSigmetCard(sigmet) {
         return ft >= 18000 ? `FL${Math.round(ft / 100)}` : `${ft.toLocaleString()} ft`;
     }
 
-    const altLo = fmtAlt(sigmet.altitudeLo1);
+    const altLo = fmtAlt(sigmet.altitudeLow1);
     const altHi = fmtAlt(sigmet.altitudeHi1);
     const altStr = altLo && altHi ? `${altLo} – ${altHi}` : (altHi || altLo || '');
 
@@ -1200,18 +1198,62 @@ function buildGairmetCard(gairmet) {
     const validStr = formatGairmetValidTime(gairmet.validTime);
     const hazardStr = HAZARD_LABELS[gairmet.hazard] || gairmet.hazard || '';
 
-    // Build a clean details object for the expandable panel
-    const details = {};
-    if (gairmet.hazard) details['Hazard'] = gairmet.hazard;
-    if (gairmet.product) details['Product'] = gairmet.product.toUpperCase();
-    if (gairmet.forecastHour != null) details['Forecast hour'] = `+${gairmet.forecastHour}h`;
-    if (gairmet.validTime) details['Valid time'] = gairmet.validTime;
-    if (gairmet.geometryType) details['Geometry'] = gairmet.geometryType;
-    if (gairmet.due_to) details['Due to'] = gairmet.due_to;
+    // Format a G-AIRMET altitude value (hundreds-of-feet FL notation or keyword like FZL/SFC)
+    function fmtGAlt(val) {
+        if (val == null || val === '') return null;
+        if (isNaN(val)) return String(val); // FZL, SFC, etc.
+        return `FL${val}`;
+    }
 
-    const detailsLines = Object.entries(details)
-        .map(([k, v]) => `  ${k}: ${v}`)
-        .join('\n');
+    const altBase = fmtGAlt(gairmet.base);
+    const altTop  = fmtGAlt(gairmet.top);
+    const fzlBase = fmtGAlt(gairmet.fzlbase);
+    const fzlTop  = fmtGAlt(gairmet.fzltop);
+    const fzlLvl  = fmtGAlt(gairmet.level);
+
+    const altStr = (altBase && altTop) ? `${altBase}–${altTop}` : (altTop || altBase || '');
+    const fzlStr = (fzlBase && fzlTop) ? `${fzlBase}–${fzlTop}` : (fzlLvl || '');
+
+    // Format a timestamp as "HH:MMZ (h:MM AM/PM local)"
+    function fmtTimestamp(isoStr) {
+        if (!isoStr) return null;
+        try {
+            const d = new Date(isoStr);
+            const hz = String(d.getUTCHours()).padStart(2, '0');
+            const mz = String(d.getUTCMinutes()).padStart(2, '0');
+            const local = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            return `${hz}:${mz}Z (${local} local)`;
+        } catch { return isoStr; }
+    }
+
+    // Format unix epoch seconds as timestamp
+    function fmtEpoch(secs) {
+        if (secs == null) return null;
+        return fmtTimestamp(new Date(secs * 1000).toISOString());
+    }
+
+    const validTimeStr  = fmtTimestamp(gairmet.validTime);
+    const issuedTimeStr = fmtEpoch(gairmet.issueTime);
+
+    // Synthesize a formatted text block (G-AIRMETs have no raw bulletin text)
+    const rawLines = [];
+    rawLines.push(`G-AIRMET ${(gairmet.product || '').toUpperCase()} ${gairmet.tag || ''} ${gairmet.status || ''}`.trim());
+    if (validTimeStr)  rawLines.push(`Valid:   ${validTimeStr}`);
+    if (issuedTimeStr) rawLines.push(`Issued:  ${issuedTimeStr}`);
+    if (gairmet.severity) rawLines.push(`Severity: ${gairmet.severity}`);
+    if (altStr) rawLines.push(`Altitudes: ${altStr}`);
+    if (fzlStr) rawLines.push(`FZLVL: ${fzlStr}`);
+    if (gairmet.due_to) rawLines.push(`Due to: ${gairmet.due_to}`);
+    if (gairmet.forecastHour != null) rawLines.push(`Forecast hour: +${gairmet.forecastHour}h`);
+    const rawText = rawLines.join('\n');
+
+    // Inline detail chips
+    const chips = [];
+    if (gairmet.severity) chips.push(`<span class="warning-detail-item"><strong>${escapeHtml(gairmet.severity)}</strong></span>`);
+    if (altStr) chips.push(`<span class="warning-detail-item"><strong>Alt:</strong> ${escapeHtml(altStr)}</span>`);
+    if (fzlStr) chips.push(`<span class="warning-detail-item"><strong>FZLVL:</strong> ${escapeHtml(fzlStr)}</span>`);
+    if (gairmet.due_to) chips.push(`<span class="warning-detail-item">${escapeHtml(gairmet.due_to)}</span>`);
+    if (gairmet.forecastHour != null) chips.push(`<span class="warning-detail-item"><strong>Fcst:</strong> +${gairmet.forecastHour}h</span>`);
 
     return `<div class="warning-card ${cardClass}">
   <div class="warning-card-header">
@@ -1220,11 +1262,10 @@ function buildGairmetCard(gairmet) {
   </div>
   <div class="warning-detail">
     <span class="warning-detail-item"><strong>${escapeHtml(hazardStr)}</strong></span>
-    ${gairmet.due_to ? `<span class="warning-detail-item">${escapeHtml(gairmet.due_to)}</span>` : ''}
-    ${gairmet.forecastHour != null ? `<span class="warning-detail-item"><strong>Fcst:</strong> +${gairmet.forecastHour}h</span>` : ''}
+    ${chips.join('')}
   </div>
-  <button class="warning-raw-toggle" data-show="Show details" data-hide="Hide details">Show details</button>
-  <div class="warning-raw" hidden><pre>${escapeHtml(detailsLines)}</pre></div>
+  <button class="warning-raw-toggle" data-show="Show raw text" data-hide="Hide raw text">Show raw text</button>
+  <div class="warning-raw" hidden><pre>${escapeHtml(rawText)}</pre></div>
 </div>`;
 }
 
