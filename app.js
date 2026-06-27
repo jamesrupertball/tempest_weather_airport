@@ -1029,11 +1029,11 @@ function pointInPolygon(lat, lon, coords) {
         let xi, yi, xj, yj;
 
         if (Array.isArray(coords[i])) {
-            xi = coords[i][0]; yi = coords[i][1];
-            xj = coords[j][0]; yj = coords[j][1];
+            xi = +coords[i][0]; yi = +coords[i][1];
+            xj = +coords[j][0]; yj = +coords[j][1];
         } else {
-            xi = coords[i].lat; yi = coords[i].lon;
-            xj = coords[j].lat; yj = coords[j].lon;
+            xi = +coords[i].lat; yi = +coords[i].lon;
+            xj = +coords[j].lat; yj = +coords[j].lon;
         }
 
         const intersect = ((yi > lon) !== (yj > lon)) &&
