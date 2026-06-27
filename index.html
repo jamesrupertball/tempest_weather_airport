@@ -11,31 +11,32 @@
 
 <!-- Sticky header -->
 <header class="site-header">
-<div class="header-inner">
-    <div class="header-top">
-        <div class="logo-mark">00MN</div>
-        <div class="station-info">
-            <div class="station-name">Battle Lake Municipal Airport</div>
-            <div class="station-meta">1,391 ft MSL</div>
+    <div class="header-inner">
+        <div class="header-top">
+            <div class="logo-mark">00MN</div>
+            <div class="station-info">
+                <div class="station-name">Battle Lake Municipal Airport</div>
+                <div class="station-meta">1,391 ft MSL</div>
+            </div>
+        </div>
+
+        <div class="header-status">
+            <span class="live-indicator">
+                <span class="live-dot"></span>
+                Live · <span id="lastUpdated">--</span>
+            </span>
+            <span class="header-times">
+                <span id="timestampZulu" class="mono">--</span>
+                · <span id="timestampLocal" class="mono">--</span>
+            </span>
+        </div>
+
+        <div class="section-switcher">
+            <button id="toggleWind" class="section-tab active">Rwy Wind</button>
+            <button id="toggleWeather" class="section-tab">Weather</button>
+            <button id="toggleWarnings" class="section-tab">Warnings</button>
         </div>
     </div>
-
-    <div class="header-status">
-        <span class="live-indicator">
-            <span class="live-dot"></span>
-            Live · <span id="lastUpdated">--</span>
-        </span>
-        <span class="header-times">
-            <span id="timestampZulu" class="mono">--</span>
-            · <span id="timestampLocal" class="mono">--</span>
-        </span>
-    </div>
-
-    <div class="section-switcher">
-        <button id="toggleWind" class="section-tab active">Wind</button>
-        <button id="toggleWeather" class="section-tab">Weather</button>
-    </div>
-</div><!-- end .header-inner -->
 </header>
 
 <main>
@@ -222,6 +223,37 @@
         </div>
     </section>
 
+    <!-- ===== WARNINGS SECTION ===== -->
+    <section id="warningsView" style="display:none">
+
+        <!-- Loading state -->
+        <div id="warningsLoading" class="warnings-state" style="display:none">
+            <div class="warnings-state-icon warnings-loading-icon">…</div>
+            <div class="warnings-state-title">Checking warnings</div>
+            <div class="warnings-state-sub">Fetching SIGMET &amp; G-AIRMET data</div>
+        </div>
+
+        <!-- All-clear state -->
+        <div id="warningsClear" class="warnings-state" style="display:none">
+            <div class="warnings-ok-icon">✓</div>
+            <div class="warnings-state-title">No active warnings</div>
+            <div class="warnings-state-sub">No SIGMETs or G-AIRMETs affecting this location</div>
+        </div>
+
+        <!-- Error state -->
+        <div id="warningsError" class="warnings-state" style="display:none">
+            <div class="warnings-state-title">Could not load warnings</div>
+            <div class="warnings-state-sub">Check connection and try again</div>
+        </div>
+
+        <!-- Warning cards injected by JS -->
+        <div id="warningsList"></div>
+
+        <!-- Last updated timestamp -->
+        <div id="warningsUpdated" class="warnings-updated"></div>
+
+    </section>
+
     <!-- Disclaimer -->
     <div class="disclaimer">
         <strong>Not an official weather source.</strong> Situational awareness only — obtain an official briefing before flight.
@@ -248,7 +280,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="config.js?v=3"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=11"></script>
 
 </body>
 </html>

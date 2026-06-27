@@ -43,6 +43,9 @@ const NWS_GRID_Y = config.nws.grid.y;
 let supabaseClient;
 let refreshTimer;
 let countdownTimer;
+let warningsRefreshTimer;
+
+const WARNINGS_REFRESH_INTERVAL = 600000; // 10 minutes
 
 // NWS forecast state
 let currentMode = 'live'; // 'live' or 'forecast'
@@ -144,6 +147,9 @@ function initializeApp() {
 
     // Fetch forecast data
     fetchForecastData();
+
+    // Fetch warnings data (background — shown when Warnings tab is opened)
+    fetchWarningsData();
 
     // Set up auto-refresh
     startAutoRefresh();
@@ -908,12 +914,18 @@ function startAutoRefresh() {
     // Clear any existing timers
     if (refreshTimer) clearInterval(refreshTimer);
     if (countdownTimer) clearInterval(countdownTimer);
+    if (warningsRefreshTimer) clearInterval(warningsRefreshTimer);
 
     // Set up refresh timer
     refreshTimer = setInterval(() => {
         fetchWeatherData();
         resetCountdown();
     }, REFRESH_INTERVAL);
+
+    // Set up warnings refresh timer (10 minutes)
+    warningsRefreshTimer = setInterval(() => {
+        fetchWarningsData();
+    }, WARNINGS_REFRESH_INTERVAL);
 
     // Set up countdown timer
     startCountdown();
@@ -944,44 +956,42 @@ function resetCountdown() {
 function setupViewToggle() {
     const toggleWind = document.getElementById('toggleWind');
     const toggleWeather = document.getElementById('toggleWeather');
+    const toggleWarnings = document.getElementById('toggleWarnings');
 
-    // Get the flip-card containers instead of inner sections
     const windCardContainer = document.getElementById('windCardContainer');
-    const runwayCardContainer = document.getElementById('runwayCardContainer');
     const weatherView = document.getElementById('weatherView');
+    const warningsView = document.getElementById('warningsView');
+    const sourceTabs = document.querySelector('.source-tabs');
+    const forecastSelector = document.getElementById('forecastSelector');
 
-    // Verify all elements exist before setting up event listeners
-    if (!toggleWind || !toggleWeather || !windCardContainer || !runwayCardContainer || !weatherView) {
-        console.error('View toggle setup failed - missing elements:', {
-            toggleWind: !!toggleWind,
-            toggleWeather: !!toggleWeather,
-            windCardContainer: !!windCardContainer,
-            runwayCardContainer: !!runwayCardContainer,
-            weatherView: !!weatherView
-        });
+    if (!toggleWind || !toggleWeather || !toggleWarnings || !windCardContainer || !weatherView || !warningsView) {
+        console.error('View toggle setup failed - missing elements');
         return;
     }
 
-    toggleWind.addEventListener('click', () => {
-        // Show wind containers, hide weather view
-        windCardContainer.style.display = '';
-        runwayCardContainer.style.display = '';
-        weatherView.style.display = 'none';
+    function showSection(section) {
+        const isWind = section === 'wind';
+        const isWeather = section === 'weather';
+        const isWarnings = section === 'warnings';
 
-        // Update button states
-        toggleWind.classList.add('active');
-        toggleWeather.classList.remove('active');
-    });
+        windCardContainer.style.display = isWind ? '' : 'none';
+        weatherView.style.display = isWeather ? '' : 'none';
+        warningsView.style.display = isWarnings ? '' : 'none';
 
-    toggleWeather.addEventListener('click', () => {
-        // Show weather view, hide wind containers
-        windCardContainer.style.display = 'none';
-        runwayCardContainer.style.display = 'none';
-        weatherView.style.display = '';
+        // Hide source tabs and forecast selector on Warnings (irrelevant there)
+        if (sourceTabs) sourceTabs.style.display = isWarnings ? 'none' : '';
+        if (forecastSelector && isWarnings) forecastSelector.classList.remove('active');
 
-        // Update button states
-        toggleWeather.classList.add('active');
-        toggleWind.classList.remove('active');
+        toggleWind.classList.toggle('active', isWind);
+        toggleWeather.classList.toggle('active', isWeather);
+        toggleWarnings.classList.toggle('active', isWarnings);
+    }
+
+    toggleWind.addEventListener('click', () => showSection('wind'));
+    toggleWeather.addEventListener('click', () => showSection('weather'));
+    toggleWarnings.addEventListener('click', () => {
+        showSection('warnings');
+        fetchWarningsData();
     });
 }
 
@@ -996,9 +1006,320 @@ document.addEventListener('visibilitychange', () => {
         console.log('Page hidden - pausing updates');
         if (refreshTimer) clearInterval(refreshTimer);
         if (countdownTimer) clearInterval(countdownTimer);
+        if (warningsRefreshTimer) clearInterval(warningsRefreshTimer);
     } else {
         console.log('Page visible - resuming updates');
         fetchWeatherData();
         startAutoRefresh();
     }
 });
+
+// ============================================================================
+// WARNINGS (SIGMET / G-AIRMET)
+// ============================================================================
+
+// Ray-casting point-in-polygon. coords may be [[lat,lon],...] or [{lat,lon},...]
+function pointInPolygon(lat, lon, coords) {
+    if (!Array.isArray(coords) || coords.length < 3) return false;
+
+    let inside = false;
+    const n = coords.length;
+
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+        let xi, yi, xj, yj;
+
+        if (Array.isArray(coords[i])) {
+            xi = +coords[i][0]; yi = +coords[i][1];
+            xj = +coords[j][0]; yj = +coords[j][1];
+        } else {
+            xi = +coords[i].lat; yi = +coords[i].lon;
+            xj = +coords[j].lat; yj = +coords[j].lon;
+        }
+
+        const intersect = ((yi > lon) !== (yj > lon)) &&
+            (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+}
+
+async function fetchWarningsData() {
+    console.log('Fetching warnings data...');
+
+    const warningsLoading = document.getElementById('warningsLoading');
+    const warningsClear = document.getElementById('warningsClear');
+    const warningsError = document.getElementById('warningsError');
+    const warningsList = document.getElementById('warningsList');
+
+    // Only show loading spinner if the warnings tab is currently visible
+    const warningsView = document.getElementById('warningsView');
+    const isVisible = warningsView && warningsView.style.display !== 'none';
+
+    if (isVisible) {
+        if (warningsLoading) warningsLoading.style.display = '';
+        if (warningsClear) warningsClear.style.display = 'none';
+        if (warningsError) warningsError.style.display = 'none';
+        if (warningsList) warningsList.innerHTML = '';
+    }
+
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('fetch-warnings');
+
+        if (error) throw error;
+
+        const airportLat = NWS_LAT;
+        const airportLon = NWS_LON;
+
+        const airsigmets = (data.airsigmets || []).filter(s =>
+            pointInPolygon(airportLat, airportLon, s.coords)
+        );
+        const gairmets = (data.gairmets || []).filter(g =>
+            pointInPolygon(airportLat, airportLon, g.coords)
+        );
+
+        console.log(`Warnings affecting location: ${airsigmets.length} SIGMETs, ${gairmets.length} G-AIRMETs`);
+
+        displayWarnings(airsigmets, gairmets);
+
+    } catch (error) {
+        console.error('Error fetching warnings:', error);
+        if (isVisible) {
+            if (warningsLoading) warningsLoading.style.display = 'none';
+            if (warningsError) warningsError.style.display = '';
+        }
+    }
+}
+
+function formatValidTimeUntil(unixTs) {
+    if (unixTs == null) return '';
+    const d = new Date(unixTs * 1000);
+    const h = String(d.getUTCHours()).padStart(2, '0');
+    const m = String(d.getUTCMinutes()).padStart(2, '0');
+    const local = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `Until ${h}:${m}Z · ${local}`;
+}
+
+function formatGairmetValidTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+        const d = new Date(isoStr);
+        const h = String(d.getUTCHours()).padStart(2, '0');
+        const m = String(d.getUTCMinutes()).padStart(2, '0');
+        const local = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        return `Valid ${h}:${m}Z · ${local}`;
+    } catch {
+        return isoStr;
+    }
+}
+
+const HAZARD_LABELS = {
+    // SIGMET hazards (uppercase)
+    'CONVECTIVE': 'Convective',
+    'TURB': 'Turbulence',
+    'ICE': 'Icing',
+    'IFR': 'IFR',
+    // G-AIRMET hazards (uppercase, as returned by API)
+    'TURB-HI': 'Turbulence Hi Alt',
+    'TURB-LO': 'Turbulence Lo Alt',
+    'LLWS': 'Low-Level Wind Shear',
+    'SFC_WIND': 'Strong Sfc Winds',
+    'MT_OBSC': 'Mtn Obscuration',
+    'FZLVL': 'Freezing Level',
+};
+
+const SIGMET_CARD_CLASS = {
+    'CONVECTIVE': 'warning-card--conv',
+    'TURB': 'warning-card--turb',
+    'ICE': 'warning-card--ice',
+    'IFR': 'warning-card--ifr',
+};
+
+const GAIRMET_CARD_CLASS = {
+    'TURB-HI': 'warning-card--turb',
+    'TURB-LO': 'warning-card--turb',
+    'LLWS': 'warning-card--llws',
+    'SFC_WIND': 'warning-card--sfc-wind',
+    'IFR': 'warning-card--ifr',
+    'MT_OBSC': 'warning-card--mtn-obs',
+    'ICE': 'warning-card--ice',
+    'FZLVL': 'warning-card--fzlvl',
+};
+
+const GAIRMET_BADGE_CLASS = {
+    'sierra': 'warning-badge--sierra',
+    'tango': 'warning-badge--tango',
+    'zulu': 'warning-badge--zulu',
+};
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function buildSigmetCard(sigmet) {
+    const cardClass = SIGMET_CARD_CLASS[sigmet.hazard] || 'warning-card--conv';
+    const validStr = formatValidTimeUntil(sigmet.validTimeTo);
+    const hazardStr = HAZARD_LABELS[sigmet.hazard] || sigmet.hazard || '';
+
+    // Altitude: values are in feet; format as FLxxx if above 180, else as ft
+    function fmtAlt(ft) {
+        if (ft == null) return null;
+        return ft >= 18000 ? `FL${Math.round(ft / 100)}` : `${ft.toLocaleString()} ft`;
+    }
+
+    const altLo = fmtAlt(sigmet.altitudeLow1);
+    const altHi = fmtAlt(sigmet.altitudeHi1);
+    const altStr = altLo && altHi ? `${altLo} – ${altHi}` : (altHi || altLo || '');
+
+    const rawText = sigmet.rawAirSigmet || '';
+    const rawEscaped = escapeHtml(rawText);
+
+    return `<div class="warning-card ${cardClass}">
+  <div class="warning-card-header">
+    <span class="warning-badge warning-badge--sigmet">SIGMET · ${escapeHtml(hazardStr)}</span>
+    ${validStr ? `<span class="warning-valid">${escapeHtml(validStr)}</span>` : ''}
+  </div>
+  <div class="warning-detail">
+    ${altStr ? `<span class="warning-detail-item"><strong>Alt:</strong> ${escapeHtml(altStr)}</span>` : ''}
+    ${sigmet.movementDir != null ? `<span class="warning-detail-item"><strong>Moving:</strong> ${sigmet.movementDir}° at ${sigmet.movementSpd} kt</span>` : ''}
+    ${sigmet.severity ? `<span class="warning-detail-item"><strong>Severity:</strong> ${sigmet.severity}</span>` : ''}
+  </div>
+  ${rawText ? `<button class="warning-raw-toggle" data-show="Show raw text" data-hide="Hide raw text">Show raw text</button>
+  <div class="warning-raw" hidden><pre>${rawEscaped}</pre></div>` : ''}
+</div>`;
+}
+
+function buildGairmetCard(gairmet) {
+    const product = (gairmet.product || '').toLowerCase();
+    const cardClass = GAIRMET_CARD_CLASS[gairmet.hazard] || 'warning-card--turb';
+    const badgeClass = GAIRMET_BADGE_CLASS[product] || 'warning-badge--tango';
+    const validStr = formatGairmetValidTime(gairmet.validTime);
+    const hazardStr = HAZARD_LABELS[gairmet.hazard] || gairmet.hazard || '';
+
+    // Format a G-AIRMET altitude value (hundreds-of-feet FL notation or keyword like FZL/SFC)
+    function fmtGAlt(val) {
+        if (val == null || val === '') return null;
+        if (isNaN(val)) return String(val); // FZL, SFC, etc.
+        return `FL${val}`;
+    }
+
+    const altBase = fmtGAlt(gairmet.base);
+    const altTop  = fmtGAlt(gairmet.top);
+    const fzlBase = fmtGAlt(gairmet.fzlbase);
+    const fzlTop  = fmtGAlt(gairmet.fzltop);
+    const fzlLvl  = fmtGAlt(gairmet.level);
+
+    const altStr = (altBase && altTop) ? `${altBase}–${altTop}` : (altTop || altBase || '');
+    const fzlStr = (fzlBase && fzlTop) ? `${fzlBase}–${fzlTop}` : (fzlLvl || '');
+
+    // Format a timestamp as "HH:MMZ (h:MM AM/PM local)"
+    function fmtTimestamp(isoStr) {
+        if (!isoStr) return null;
+        try {
+            const d = new Date(isoStr);
+            const hz = String(d.getUTCHours()).padStart(2, '0');
+            const mz = String(d.getUTCMinutes()).padStart(2, '0');
+            const local = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            return `${hz}:${mz}Z (${local} local)`;
+        } catch { return isoStr; }
+    }
+
+    // Format unix epoch seconds as timestamp
+    function fmtEpoch(secs) {
+        if (secs == null) return null;
+        return fmtTimestamp(new Date(secs * 1000).toISOString());
+    }
+
+    const validTimeStr  = fmtTimestamp(gairmet.validTime);
+    const issuedTimeStr = fmtEpoch(gairmet.issueTime);
+
+    // Synthesize a formatted text block (G-AIRMETs have no raw bulletin text)
+    const rawLines = [];
+    rawLines.push(`G-AIRMET ${(gairmet.product || '').toUpperCase()} ${gairmet.tag || ''} ${gairmet.status || ''}`.trim());
+    if (validTimeStr)  rawLines.push(`Valid:   ${validTimeStr}`);
+    if (issuedTimeStr) rawLines.push(`Issued:  ${issuedTimeStr}`);
+    if (gairmet.severity) rawLines.push(`Severity: ${gairmet.severity}`);
+    if (altStr) rawLines.push(`Altitudes: ${altStr}`);
+    if (fzlStr) rawLines.push(`FZLVL: ${fzlStr}`);
+    if (gairmet.due_to) rawLines.push(`Due to: ${gairmet.due_to}`);
+    if (gairmet.forecastHour != null) rawLines.push(`Forecast hour: +${gairmet.forecastHour}h`);
+    const rawText = rawLines.join('\n');
+
+    // Inline detail chips
+    const chips = [];
+    if (gairmet.severity) chips.push(`<span class="warning-detail-item"><strong>${escapeHtml(gairmet.severity)}</strong></span>`);
+    if (altStr) chips.push(`<span class="warning-detail-item"><strong>Alt:</strong> ${escapeHtml(altStr)}</span>`);
+    if (fzlStr) chips.push(`<span class="warning-detail-item"><strong>FZLVL:</strong> ${escapeHtml(fzlStr)}</span>`);
+    if (gairmet.due_to) chips.push(`<span class="warning-detail-item">${escapeHtml(gairmet.due_to)}</span>`);
+    if (gairmet.forecastHour != null) chips.push(`<span class="warning-detail-item"><strong>Fcst:</strong> +${gairmet.forecastHour}h</span>`);
+
+    return `<div class="warning-card ${cardClass}">
+  <div class="warning-card-header">
+    <span class="warning-badge ${badgeClass}">G-AIRMET · ${escapeHtml(product.toUpperCase())}</span>
+    ${validStr ? `<span class="warning-valid">${escapeHtml(validStr)}</span>` : ''}
+  </div>
+  <div class="warning-detail">
+    <span class="warning-detail-item"><strong>${escapeHtml(hazardStr)}</strong></span>
+    ${chips.join('')}
+  </div>
+  <button class="warning-raw-toggle" data-show="Show raw text" data-hide="Hide raw text">Show raw text</button>
+  <div class="warning-raw" hidden><pre>${escapeHtml(rawText)}</pre></div>
+</div>`;
+}
+
+function displayWarnings(airsigmets, gairmets) {
+    const warningsLoading = document.getElementById('warningsLoading');
+    const warningsClear = document.getElementById('warningsClear');
+    const warningsError = document.getElementById('warningsError');
+    const warningsList = document.getElementById('warningsList');
+    const warningsUpdated = document.getElementById('warningsUpdated');
+
+    if (warningsLoading) warningsLoading.style.display = 'none';
+    if (warningsError) warningsError.style.display = 'none';
+
+    const total = airsigmets.length + gairmets.length;
+
+    if (total === 0) {
+        if (warningsClear) warningsClear.style.display = '';
+        if (warningsList) warningsList.innerHTML = '';
+    } else {
+        if (warningsClear) warningsClear.style.display = 'none';
+
+        let html = '';
+
+        if (airsigmets.length > 0) {
+            html += `<div class="warning-group-header">SIGMETs (${airsigmets.length})</div>`;
+            airsigmets.forEach(s => { html += buildSigmetCard(s); });
+        }
+
+        if (gairmets.length > 0) {
+            html += `<div class="warning-group-header">G-AIRMETs (${gairmets.length})</div>`;
+            gairmets.forEach(g => { html += buildGairmetCard(g); });
+        }
+
+        if (warningsList) {
+            warningsList.innerHTML = html;
+
+            // Wire up expand/collapse toggles
+            warningsList.querySelectorAll('.warning-raw-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const rawDiv = btn.nextElementSibling;
+                    const isHidden = rawDiv.hasAttribute('hidden');
+                    rawDiv.toggleAttribute('hidden');
+                    btn.textContent = isHidden ? btn.dataset.hide : btn.dataset.show;
+                });
+            });
+        }
+    }
+
+    if (warningsUpdated) {
+        const now = new Date();
+        const h = String(now.getUTCHours()).padStart(2, '0');
+        const m = String(now.getUTCMinutes()).padStart(2, '0');
+        warningsUpdated.textContent = `Updated ${h}:${m}Z`;
+    }
+}
