@@ -1096,7 +1096,8 @@ function formatValidTimeUntil(unixTs) {
     const d = new Date(unixTs * 1000);
     const h = String(d.getUTCHours()).padStart(2, '0');
     const m = String(d.getUTCMinutes()).padStart(2, '0');
-    return `Until ${h}:${m}Z`;
+    const local = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `Until ${h}:${m}Z · ${local}`;
 }
 
 function formatGairmetValidTime(isoStr) {
@@ -1105,7 +1106,8 @@ function formatGairmetValidTime(isoStr) {
         const d = new Date(isoStr);
         const h = String(d.getUTCHours()).padStart(2, '0');
         const m = String(d.getUTCMinutes()).padStart(2, '0');
-        return `Valid ${h}:${m}Z`;
+        const local = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        return `Valid ${h}:${m}Z · ${local}`;
     } catch {
         return isoStr;
     }
