@@ -163,11 +163,15 @@ async function fetchWeatherData() {
     console.log('Fetching weather data...');
 
     try {
-        // Query the latest observation from Supabase
-        // Order by timestamp descending and get the most recent record
+        // Query the latest observation with valid wind data. The Tempest station
+        // can temporarily return null wind values (power-save, radio gap, REST
+        // aggregation lag) while still reporting other fields. Filtering here
+        // prevents silently showing 0 kt, and the returned timestamp naturally
+        // reflects the observation age in the "X ago" indicator.
         const { data, error } = await supabaseClient
             .from('observations_tempest')
             .select('wind_avg, wind_gust, wind_direction, timestamp, air_temperature, pressure, relative_humidity')
+            .not('wind_avg', 'is', null)
             .order('timestamp', { ascending: false })
             .limit(1);
 
@@ -904,6 +908,15 @@ function updateTimestamp(timestamp) {
         ageStr = `${Math.floor(diffSeconds / 3600)}h ago`;
     }
     document.getElementById('lastUpdated').textContent = ageStr;
+
+    // Flag stale data (older than 5 minutes)
+    const isStale = diffSeconds > 300;
+    const dot = document.getElementById('liveDot');
+    const label = document.getElementById('liveLabel');
+    const indicator = document.getElementById('liveIndicator');
+    if (dot) dot.classList.toggle('live-dot--stale', isStale);
+    if (indicator) indicator.classList.toggle('live-indicator--stale', isStale);
+    if (label) label.textContent = isStale ? 'Stale' : 'Live';
 }
 
 // ============================================================================

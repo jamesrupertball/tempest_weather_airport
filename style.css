@@ -176,6 +176,16 @@ button:focus-visible {
     50% { box-shadow: 0 0 0 4px oklch(0.92 0.06 150); }
 }
 
+.live-dot--stale {
+    background: oklch(0.62 0.2 25);
+    box-shadow: 0 0 0 2.5px oklch(0.85 0.12 25);
+    animation: none;
+}
+
+.live-indicator--stale {
+    color: oklch(0.62 0.2 25);
+}
+
 .header-times {
     display: flex;
     align-items: center;
